@@ -9,7 +9,8 @@
                 "-S",
                 ".",
                 "-B",
-                "build"
+                "build",
+                "-DCMAKE_BUILD_TYPE=Debug"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
