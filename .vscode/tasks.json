@@ -39,7 +39,7 @@
             "type": "process",
             "command": "${workspaceFolder}/build/void",
             "args": [
-                "sample.p"
+                "test.pn"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
