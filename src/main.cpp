@@ -85,7 +85,7 @@ vector<Token> tokenize(const string &str)
 string token_to_asm(const vector<Token> &tokens)
 {
     stringstream output;
-    output << "global _start\nstart:\n";
+    output << "global _start\n_start:\n";
 
     for (int i = 0; i < tokens.size(); i++)
     {
@@ -126,19 +126,22 @@ int main(int argc, char *argv[])
 
     vector<Token> tokens = tokenize(contents);
 
-    for (const auto &token : tokens)
     {
-        if (token.type == TokenType::_return)
-            cout << "RETURN\n";
-
-        else if (token.type == TokenType::int_lit)
-            cout << "INT: " << token.value.value() << "\n";
-
-        else if (token.type == TokenType::semi)
-            cout << "SEMI\n";
+        fstream file("out.asm", ios::out);
+        file << token_to_asm(tokens);
     }
 
-    cout << token_to_asm(tokens) << endl;
+    // for (const auto &token : tokens)
+    // {
+    //     if (token.type == TokenType::_return)
+    //         cout << "RETURN\n";
+
+    //     else if (token.type == TokenType::int_lit)
+    //         cout << "INT: " << token.value.value() << "\n";
+
+    //     else if (token.type == TokenType::semi)
+    //         cout << "SEMI\n";
+    // }
 
     return EXIT_SUCCESS;
 }
