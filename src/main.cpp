@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "tokenization.hpp"
+#include "parser.hpp"
 
 using namespace std;
 
