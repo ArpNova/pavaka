@@ -49,13 +49,18 @@ public:
                     std::cerr << "Invalid expression" << std::endl;
                     exit(EXIT_FAILURE);
                 }
-                if (!peak().has_value() || peak().value().type != TokenType::semi)
+                if (peak().has_value() && peak().value().type == TokenType::semi)
                 {
+                    consume();
+                }
+                else{
                     std::cerr << "Invalid expression" << std::endl;
                     exit(EXIT_FAILURE);
                 }
             }
         }
+
+        return exit_node;
     }
 
 private:
