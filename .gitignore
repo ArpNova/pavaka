@@ -43,3 +43,4 @@ Makefile
 !.env.example
 *.log
 *.asm
+out
