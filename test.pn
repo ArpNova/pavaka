@@ -1,4 +1,4 @@
-let x = 50;
+let x = 143;
 let y = x;
 let z = y;
 exit (z);
