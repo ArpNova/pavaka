@@ -5,7 +5,6 @@
 #include <string>
 #include <vector>
 
-
 #include "generation.hpp"
 
 using namespace std;
@@ -24,6 +23,11 @@ int main(int argc, char *argv[])
     {
         stringstream contents_stream;
         fstream input(argv[1], ios::in);
+        if (!input)
+        {
+            cerr << "Could not open input file: " << argv[1] << endl;
+            return EXIT_FAILURE;
+        }
         contents_stream << input.rdbuf();
         contents = contents_stream.str();
     }
@@ -43,11 +47,29 @@ int main(int argc, char *argv[])
 
     {
         fstream file("out.asm", ios::out);
+        if (!file)
+        {
+            cerr << "Could not create out.asm" << endl;
+            return EXIT_FAILURE;
+        }
         file << generator.gen_prog();
+        if (!file)
+        {
+            cerr << "Could not write out.asm" << endl;
+            return EXIT_FAILURE;
+        }
     }
 
-    system("nasm -felf64  out.asm");
-    system("ld -o out out.o");
+    if (system("nasm -felf64 out.asm") != 0)
+    {
+        cerr << "Assembler failed" << endl;
+        return EXIT_FAILURE;
+    }
+    if (system("ld -o out out.o") != 0)
+    {
+        cerr << "Linker failed" << endl;
+        return EXIT_FAILURE;
+    }
 
     return EXIT_SUCCESS;
 }

@@ -2,6 +2,7 @@
 
 #include <variant>
 
+#include "arena.hpp"
 #include "tokenization.hpp"
 
 struct NodeExprIntLit
@@ -14,25 +15,44 @@ struct NodeExprIdent
     Token ident;
 };
 
+struct NodeBinExpr;
+
 struct NodeExpr
 {
-    std::variant<NodeExprIntLit, NodeExprIdent> var;
+    std::variant<NodeExprIntLit *, NodeExprIdent *, NodeBinExpr*> var;
+};
+
+struct BinExprMulti
+{
+    NodeExpr *lhs;
+    NodeExpr *rhs;
+};
+
+struct BinExprAdd
+{
+    NodeExpr *lhs;
+    NodeExpr *rhs;
+};
+
+struct NodeBinExpr
+{
+    std::variant<BinExprAdd *, BinExprMulti *> var;
 };
 
 struct NodeStmtLet
 {
     Token ident;
-    NodeExpr expr;
+    NodeExpr *expr;
 };
 
 struct NodeStmtExit
 {
-    NodeExpr expr;
+    NodeExpr *expr;
 };
 
 struct NodeStmt
 {
-    std::variant<NodeStmtExit, NodeStmtLet> var;
+    std::variant<NodeStmtExit *, NodeStmtLet *> var;
 };
 
 struct NodeProg
@@ -43,19 +63,27 @@ struct NodeProg
 class Parser
 {
 public:
-    inline explicit Parser(std::vector<Token> tokens) : m_tokens(std::move(tokens))
+    inline explicit Parser(std::vector<Token> tokens) : m_tokens(std::move(tokens)), m_allocator(1024 * 1024 * 4)
     {
     }
 
-    std::optional<NodeExpr> parse_expr()
+    std::optional<NodeExpr*> parse_expr()
     {
         if (peek().has_value() && peek().value().type == TokenType::int_lit)
         {
-            return NodeExpr{.var = NodeExprIntLit{.int_lit = consume()}};
+            auto expr_int_lit = m_allocator.alloc<NodeExprIntLit>();
+            expr_int_lit->int_lit = consume();
+            auto expr = m_allocator.alloc<NodeExpr>();
+            expr->var = expr_int_lit;
+            return expr;
         }
         else if (peek().has_value() && peek().value().type == TokenType::ident)
         {
-            return NodeExpr{.var = NodeExprIdent{.ident = consume()}};
+            auto expr_ident = m_allocator.alloc<NodeExprIdent>();
+            expr_ident->ident = consume();
+            auto expr = m_allocator.alloc<NodeExpr>();
+            expr->var = expr_ident;
+            return expr;
         }
         else
         {
@@ -69,10 +97,10 @@ public:
         {
             consume();
             consume();
-            NodeStmtExit stmt_exit;
+            auto stmt_exit = m_allocator.alloc<NodeStmtExit>();
             if (auto node_expr = parse_expr())
             {
-                stmt_exit = {.expr = node_expr.value()};
+                stmt_exit->expr = node_expr.value();
             }
             else
             {
@@ -102,11 +130,12 @@ public:
         else if (peek().has_value() && peek().value().type == TokenType::let && peek(1).has_value() && peek(1).value().type == TokenType::ident && peek(2).has_value() && peek(2).value().type == TokenType::eq)
         {
             consume();
-            auto stmt_let = NodeStmtLet{.ident = consume()};
+            auto stmt_let = m_allocator.alloc<NodeStmtLet>();
+            stmt_let->ident = consume();
             consume();
             if (auto expr = parse_expr())
             {
-                stmt_let.expr = expr.value();
+                stmt_let->expr = expr.value();
             }
             else
             {
@@ -122,19 +151,25 @@ public:
                 std::cerr << "Expected `;`" << std::endl;
                 exit(EXIT_FAILURE);
             }
-            return NodeStmt {.var = stmt_let};
+            return NodeStmt{.var = stmt_let};
         }
-        else{
+        else
+        {
             return {};
         }
     }
 
-    std::optional<NodeProg> parse_prog(){
+    std::optional<NodeProg> parse_prog()
+    {
         NodeProg prog;
-        while(peek().has_value()){
-            if(auto stmt = parse_stmt()){
+        while (peek().has_value())
+        {
+            if (auto stmt = parse_stmt())
+            {
                 prog.stmts.push_back(stmt.value());
-            }else{
+            }
+            else
+            {
                 std::cerr << "Invalid statement" << std::endl;
                 exit(EXIT_FAILURE);
             }
@@ -163,4 +198,5 @@ private:
     const std::vector<Token> m_tokens;
 
     size_t m_index = 0;
+    ArenaAllocator m_allocator;
 };
