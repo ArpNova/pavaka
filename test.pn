@@ -1,4 +1,2 @@
-let x = 143;
-let y = x;
-let z = y;
-exit (z);
+let x = 139 + 4;
+exit (x);
