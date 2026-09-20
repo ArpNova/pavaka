@@ -1,2 +1,3 @@
 let x = 139 + 4;
+print("I no pata");
 exit (x);

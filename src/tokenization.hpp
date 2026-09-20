@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-enum class TokenType { exit, int_lit, semi, open_paren, close_paren, ident, let, eq, plus };
+enum class TokenType { exit, int_lit, semi, open_paren, close_paren, ident, let, eq, plus, print, string_lit };
 
 struct Token {
     TokenType type;
@@ -29,6 +29,11 @@ public:
                 }
                 if (buf == "exit") {
                     tokens.push_back({ .type = TokenType::exit });
+                    buf.clear();
+                    continue;
+                }
+                else if(buf=="print"){
+                    tokens.push_back({.type = TokenType::print});
                     buf.clear();
                     continue;
                 }
@@ -75,6 +80,27 @@ public:
             else if (peek().value() == '+') {
                 consume();
                 tokens.push_back({ .type = TokenType::plus });
+                continue;
+            }
+            else if(peek().value() == '"'){
+                consume();
+
+                std::string string_value;
+
+                while(peek().has_value() && peek().value()!='"'){
+                    string_value.push_back(consume());
+                }
+
+                if(!peek().has_value()){
+                    std::cerr<<"Unterminated string literal" << std::endl;
+                    exit(EXIT_FAILURE);
+                }
+                consume();
+
+                tokens.push_back({
+                    .type = TokenType::string_lit,
+                    .value = string_value
+                });
                 continue;
             }
             else if (std::isspace(peek().value())) {

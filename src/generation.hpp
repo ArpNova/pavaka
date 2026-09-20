@@ -3,6 +3,9 @@
 #include "parser.hpp"
 #include <cassert>
 #include <unordered_map>
+#include <sstream>
+#include <string>
+#include <vector>
 
 class Generator
 {
@@ -85,6 +88,20 @@ public:
                 gen->m_vars.insert({stmt_let->ident.value.value(), Var{.stack_loc = gen->m_stack_size}});
                 gen->gen_expr(stmt_let->expr);
             }
+            void operator()(const NodeStmtPrint *stmt_print) const
+            {
+                const std::string label = "string_" + std::to_string(gen->m_string_count++);
+                const std::string value = stmt_print->string_lit.value.value();
+
+                gen->m_data << label << " db \"" << value << "\", 10\n"
+                            << label << "_length equ $ - " << label << "\n";
+
+                gen->m_output << "    mov rax, 1\n"
+                              << "    mov rdi, 1\n"
+                              << "    mov rsi, " << label << "\n"
+                              << "    mov rdx, " << label << "_length\n"
+                              << "    syscall\n";
+            }
         };
 
         StmtVisitor visitor{.gen = this};
@@ -93,7 +110,9 @@ public:
 
     [[nodiscard]] std::string gen_prog()
     {
-        m_output << "global _start\n_start:\n";
+        m_output << "section .text\n";
+        m_output << "global _start\n";
+        m_output << "_start:\n";
 
         for (const NodeStmt *stmt : m_prog.stmts)
         {
@@ -103,7 +122,7 @@ public:
         m_output << "    mov rax, 60\n";
         m_output << "    mov rdi, 0\n";
         m_output << "    syscall\n";
-        return m_output.str();
+        return "section .data\n" + m_data.str() + "\n" + m_output.str();
     }
 
 private:
@@ -128,4 +147,6 @@ private:
     std::stringstream m_output;
     size_t m_stack_size = 0;
     std::unordered_map<std::string, Var> m_vars{};
+    std::stringstream m_data;
+    size_t m_string_count = 0;
 };
