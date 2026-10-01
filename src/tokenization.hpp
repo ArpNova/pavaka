@@ -1,6 +1,11 @@
 #pragma once
 
+#include <cctype>
+#include <cstdlib>
+#include <iostream>
+#include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 enum class TokenType { exit, int_lit, semi, open_paren, close_paren, ident, let, eq, plus, print, string_lit };
@@ -22,9 +27,9 @@ public:
         std::vector<Token> tokens;
         std::string buf;
         while (peek().has_value()) {
-            if (std::isalpha(peek().value())) {
+            if (std::isalpha(static_cast<unsigned char>(peek().value()))) {
                 buf.push_back(consume());
-                while (peek().has_value() && std::isalnum(peek().value())) {
+                while (peek().has_value() && std::isalnum(static_cast<unsigned char>(peek().value()))) {
                     buf.push_back(consume());
                 }
                 if (buf == "exit") {
@@ -48,9 +53,9 @@ public:
                     continue;
                 }
             }
-            else if (std::isdigit(peek().value())) {
+            else if (std::isdigit(static_cast<unsigned char>(peek().value()))) {
                 buf.push_back(consume());
-                while (peek().has_value() && std::isdigit(peek().value())) {
+                while (peek().has_value() && std::isdigit(static_cast<unsigned char>(peek().value()))) {
                     buf.push_back(consume());
                 }
                 tokens.push_back({ .type = TokenType::int_lit, .value = buf });
@@ -103,7 +108,7 @@ public:
                 });
                 continue;
             }
-            else if (std::isspace(peek().value())) {
+            else if (std::isspace(static_cast<unsigned char>(peek().value()))) {
                 consume();
                 continue;
             }

@@ -1,11 +1,12 @@
 #pragma once
 
 #include "parser.hpp"
-#include <cassert>
-#include <unordered_map>
+#include <cstdlib>
+#include <iostream>
 #include <sstream>
 #include <string>
-#include <vector>
+#include <unordered_map>
+#include <utility>
 
 class Generator
 {
@@ -27,7 +28,7 @@ public:
             }
             void operator()(const NodeTermIdent *term_ident) const
             {
-                if (!gen->m_vars.contains(term_ident->ident.value.value()))
+                if (gen->m_vars.find(term_ident->ident.value.value()) == gen->m_vars.end())
                 {
                     std::cerr << "Undeclared identifier: " << term_ident->ident.value.value() << std::endl;
                     exit(EXIT_FAILURE);
@@ -80,7 +81,7 @@ public:
             }
             void operator()(const NodeStmtLet *stmt_let) const
             {
-                if (gen->m_vars.contains(stmt_let->ident.value.value()))
+                if (gen->m_vars.find(stmt_let->ident.value.value()) != gen->m_vars.end())
                 {
                     std::cerr << "Identifier already used: " << stmt_let->ident.value.value() << std::endl;
                     exit(EXIT_FAILURE);

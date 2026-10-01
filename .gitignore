@@ -30,6 +30,7 @@ Makefile
 .vscode/*
 !.vscode/tasks.json
 !.vscode/launch.json
+!.vscode/settings.json
 .idea/
 .cache/
 .DS_Store

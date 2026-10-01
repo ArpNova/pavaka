@@ -1,6 +1,13 @@
 #pragma once
 
+#include <cstddef>
+#include <cstdlib>
+#include <iostream>
+#include <optional>
+#include <string>
+#include <utility>
 #include <variant>
+#include <vector>
 
 #include "./arena.hpp"
 #include "tokenization.hpp"
@@ -98,6 +105,18 @@ public:
 
     std::optional<NodeExpr *> parse_expr()
     {
+        if (try_consume(TokenType::open_paren).has_value())
+        {
+            auto expr = parse_expr();
+            if (!expr.has_value())
+            {
+                std::cerr << "Expected expression after `(`" << std::endl;
+                exit(EXIT_FAILURE);
+            }
+            try_consume(TokenType::close_paren, "Expected `)`");
+            return expr;
+        }
+
         if (auto term = parse_term())
         {
             if (try_consume(TokenType::plus).has_value())
@@ -220,7 +239,7 @@ public:
     }
 
 private:
-    [[nodiscard]] inline std::optional<Token> peek(int offset = 0) const
+    [[nodiscard]] inline std::optional<Token> peek(std::size_t offset = 0) const
     {
         if (m_index + offset >= m_tokens.size())
         {

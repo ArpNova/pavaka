@@ -1,8 +1,10 @@
 #include <iostream>
+#include <cstdlib>
 #include <fstream>
 #include <sstream>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "generation.hpp"
