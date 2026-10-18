@@ -18,6 +18,7 @@ enum class TokenType {
   let,
   eq,
   plus,
+  minus,
   print,
   string_lit,
   star
@@ -26,6 +27,7 @@ enum class TokenType {
 std::optional<int> bin_prec(TokenType type) {
   switch (type) {
   case TokenType::plus:
+  case TokenType::minus:
     return 1;
   case TokenType::star:
     return 2;
@@ -89,6 +91,9 @@ public:
       } else if (peek().value() == '+') {
         consume();
         tokens.push_back({.type = TokenType::plus});
+      } else if (peek().value() == '-') {
+        consume();
+        tokens.push_back({.type = TokenType::minus});
       } else if (peek().value() == '"') {
         consume();
 
