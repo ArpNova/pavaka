@@ -42,8 +42,13 @@ struct NodeBinExprSub {
   NodeExpr *rhs;
 };
 
+struct NodeBinExprDiv {
+  NodeExpr *lhs;
+  NodeExpr *rhs;
+};
+
 struct NodeBinExpr {
-  std::variant<NodeBinExprAdd *, NodeBinExprMulti *, NodeBinExprSub *> var;
+  std::variant<NodeBinExprAdd *, NodeBinExprMulti *, NodeBinExprSub *, NodeBinExprDiv *> var;
 };
 
 struct NodeTerm {
@@ -145,6 +150,11 @@ public:
         sub->lhs = expr_lhs2;
         sub->rhs = expr_rhs.value();
         expr->var = sub;
+      } else if (op.type == TokenType::fslash) {
+        auto div = m_allocator.alloc<NodeBinExprDiv>();
+        div->lhs = expr_lhs2;
+        div->rhs = expr_rhs.value();
+        expr->var = div;
       }
 
       expr_lhs->var = expr;

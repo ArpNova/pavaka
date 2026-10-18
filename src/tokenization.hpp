@@ -21,7 +21,8 @@ enum class TokenType {
   minus,
   print,
   string_lit,
-  star
+  star,
+  fslash
 };
 
 std::optional<int> bin_prec(TokenType type) {
@@ -30,6 +31,7 @@ std::optional<int> bin_prec(TokenType type) {
   case TokenType::minus:
     return 1;
   case TokenType::star:
+  case TokenType::fslash:
     return 2;
   default:
     return {};
@@ -114,6 +116,9 @@ public:
       } else if (peek().value() == '*') {
         consume();
         tokens.push_back({.type = TokenType::star});
+      } else if (peek().value() == '/') {
+        consume();
+        tokens.push_back({.type = TokenType::fslash});
       } else if (std::isspace(static_cast<unsigned char>(peek().value()))) {
         consume();
         continue;
