@@ -31,41 +31,56 @@ flowchart TD
 
 ## What each stage does
 
-1. **Input (`main.cpp`)**: requires exactly one input path, reads the file,
+1. **Input (`src/main.cpp`)**: Requires exactly one input path, reads the file,
    and passes its contents to the tokenizer.
-2. **Tokenization (`tokenization.hpp`)**: converts keywords (`let`, `exit`),
-   identifiers, integer literals, and punctuation such as `=`, `+`, `(`, `)`,
-   and `;` into `Token` values. Whitespace is ignored.
-3. **Parsing (`parser.hpp`)**: consumes the token vector with recursive-descent
-   functions for terms, expressions, and statements. It creates a `NodeProg`
-   AST whose statements are `let` declarations or `exit` calls.
-4. **AST storage (`arena.hpp`)**: parser nodes are allocated from one 4 MiB
-   arena, so the parser can create related nodes without individual deletes.
-5. **Code generation (`generation.hpp`)**: walks the AST using visitors. Integer
-   expressions and additions are evaluated with `rax`/`rbx` and the machine
-   stack. `let` bindings are recorded in a variable map and resolved to stack
-   offsets.
-6. **Assembly and linking (`main.cpp`)**: writes `out.asm`, assembles it into
-   `out.o` with NASM, and links it with `ld` into the `out` executable.
+2. **Tokenization (`src/tokenization.hpp`)**: Converts keywords (`let`, `string`,
+   `char`, `int`, `if`, `else`, `print`, `exit`), identifiers, literals (integer,
+   character with escape sequences, string with escape sequences), and punctuation
+   (`=`, `==`, `!=`, `<`, `<=`, `>`, `>=`, `+`, `-`, `*`, `/`, `(`, `)`, `{`, `}`,
+   `$`, `,`, `;`) into `Token` values.
+3. **Parsing (`src/parser.hpp`)**: Consumes the token vector with recursive-descent
+   functions for terms, expressions, statements, and blocks. Uses Pratt parsing
+   to construct binary expressions with proper precedence (`* /` > `+ -` > `< <= > >=` > `== !=`).
+4. **AST Storage (`src/arena.hpp`)**: Parser nodes are allocated from one 4 MiB
+   linear bump arena, allowing rapid node allocation and zero-overhead teardown.
+5. **Code Generation (`src/generation.hpp`)**: Walks the AST using visitors.
+   - Allocates string literals into `section .data` with null terminators.
+   - Evaluates arithmetic and comparisons using `rax`/`rbx` and machine stack.
+   - Manages variable mappings and stack frame offsets.
+   - Handles lexical scopes `{ ... }` with stack cleanup (`add rsp, N*8`).
+   - Translates `if`, `else if`, and `else` blocks into conditional jumps (`cmp`, `je`, `jmp`).
+   - Emits formatted printing routines for `int`, `char`, and `string`.
+6. **Assembly and Linking (`src/main.cpp`)**: Writes `out.asm`, assembles it into
+   `out.o` with NASM, and links it with `ld` into the native `out` executable.
 
-## Example path
+## Example Path
 
 For `test.pn`:
 
-```text
-let x = 139 + 4;
-exit (x);
+```pn
+let x = (280) / 2;
+let string a = "I no pata...";
+
+{
+    print("I no pata");
+    let y = 3;
+    x = x + y;
+}
+
+let z = 10;
+if (z == 1) {
+    print("z is 1");
+} else if (z == 10) {
+    print("z is ten!");
+} else {
+    print("fallback else");
+}
+
+print(a);
+exit(x);
 ```
 
-The compiler tokenizes the declaration and exit call, builds an addition AST,
-generates code that computes `139 + 4`, stores the result on the stack, loads
-`x` for the exit syscall, and produces an executable that exits with status
-`143`.
-
-## Current language boundary
-
-The implemented compiler currently supports integer literals, identifiers,
-`let` declarations, addition, and `exit`. The parser does not currently use
-parenthesized expressions as a general expression form; the parentheses in
-`exit (x);` belong to the `exit` statement syntax. There is no separate type
-checking or optimization pass yet.
+The compiler tokenizes all declarations, prints, conditionals, and expressions,
+builds the AST, generates NASM assembly that computes `x = 143`, evaluates
+the conditionals and prints results to stdout, and produces a native executable
+exiting with status code `143`.

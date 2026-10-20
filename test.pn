@@ -1,4 +1,4 @@
-let x = (280)/2;
+let int x = (280)/2;
 let string a = "I no pata...";
 
 {
@@ -6,6 +6,9 @@ let string a = "I no pata...";
     let y = 3;
     x = x + y;
 }
+
+let int value = 100;
+print("The value is " $(value));
 
 let z = 10;
 if (z == 1) {
