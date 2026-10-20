@@ -1,8 +1,9 @@
-let x = (280+6)/2;
+let x = (280)/2;
 
 {
     print("I no pata");
-    exit(x);
+    let y = 3;
+    x = x + y;
 }
 
 exit(x);

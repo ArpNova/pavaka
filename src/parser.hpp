@@ -81,8 +81,14 @@ struct NodeStmtScope {
   std::vector<NodeStmt*>stmts;
 };
 
+struct NodeStmtAssign {
+  Token ident;
+  NodeExpr *expr;
+};
+
 struct NodeStmt {
-  std::variant<NodeStmtExit *, NodeStmtLet *, NodeStmtPrint *, NodeStmtScope *>
+  std::variant<NodeStmtExit *, NodeStmtLet *, NodeStmtPrint *, NodeStmtScope *,
+               NodeStmtAssign *>
       var;
 };
 
@@ -241,6 +247,23 @@ public:
       try_consume(TokenType::semi, "Expected `;`");
       auto stmt = m_allocator.alloc<NodeStmt>();
       stmt->var = stmt_let;
+      return stmt;
+    } else if (peek().has_value() &&
+               peek().value().type == TokenType::ident &&
+               peek(1).has_value() &&
+               peek(1).value().type == TokenType::eq) {
+      auto stmt_assign = m_allocator.alloc<NodeStmtAssign>();
+      stmt_assign->ident = consume();
+      consume();
+      if (auto expr = parse_expr()) {
+        stmt_assign->expr = expr.value();
+      } else {
+        std::cerr << "Invalid expression" << std::endl;
+        exit(EXIT_FAILURE);
+      }
+      try_consume(TokenType::semi, "Expected `;`");
+      auto stmt = m_allocator.alloc<NodeStmt>();
+      stmt->var = stmt_assign;
       return stmt;
     } else if (peek().has_value() &&
                peek().value().type == TokenType::open_curly) {

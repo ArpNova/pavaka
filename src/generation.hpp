@@ -153,6 +153,22 @@ public:
         }
         gen->end_scope();
       }
+      void operator()(const NodeStmtAssign *stmt_assign) const {
+        const auto it = std::find_if(
+            gen->m_vars.crbegin(), gen->m_vars.crend(), [&](const Var &var) {
+              return var.name == stmt_assign->ident.value.value();
+            });
+        if (it == gen->m_vars.crend()) {
+          std::cerr << "Undeclared identifier: "
+                    << stmt_assign->ident.value.value() << std::endl;
+          exit(EXIT_FAILURE);
+        }
+        gen->gen_expr(stmt_assign->expr);
+        gen->pop("rax");
+        gen->m_output << "    mov QWORD [rsp + "
+                      << (gen->m_stack_size - it->stack_loc - 1) * 8
+                      << "], rax\n";
+      }
     };
 
     StmtVisitor visitor{.gen = this};
