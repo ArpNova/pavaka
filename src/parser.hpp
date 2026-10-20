@@ -28,7 +28,7 @@ struct NodeTermIdent {
 
 struct NodeExpr;
 
-struct NodeTermParen{
+struct NodeTermParen {
   NodeExpr *expr;
 };
 
@@ -53,11 +53,13 @@ struct NodeBinExprDiv {
 };
 
 struct NodeBinExpr {
-  std::variant<NodeBinExprAdd *, NodeBinExprMulti *, NodeBinExprSub *, NodeBinExprDiv *> var;
+  std::variant<NodeBinExprAdd *, NodeBinExprMulti *, NodeBinExprSub *,
+               NodeBinExprDiv *>
+      var;
 };
 
 struct NodeTerm {
-  std::variant<NodeTermIntLit *, NodeTermIdent *, NodeTermParen*> var;
+  std::variant<NodeTermIntLit *, NodeTermIdent *, NodeTermParen *> var;
 };
 
 struct NodeExpr {
@@ -73,8 +75,15 @@ struct NodeStmtLet {
   NodeExpr *expr;
 };
 
+struct NodeStmt;
+
+struct NodeStmtScope {
+  std::vector<NodeStmt*>stmts;
+};
+
 struct NodeStmt {
-  std::variant<NodeStmtExit *, NodeStmtLet *, NodeStmtPrint *> var;
+  std::variant<NodeStmtExit *, NodeStmtLet *, NodeStmtPrint *, NodeStmtScope *>
+      var;
 };
 
 struct NodeProg {
@@ -100,10 +109,10 @@ public:
       auto term = m_allocator.alloc<NodeTerm>();
       term->var = expr_ident;
       return term;
-    }else if (auto open_paren = try_consume(TokenType::open_paren)) {
+    } else if (auto open_paren = try_consume(TokenType::open_paren)) {
       auto expr = parse_expr();
-      if(!expr.has_value()){
-        std::cerr << "Expected expression" <<std::endl;
+      if (!expr.has_value()) {
+        std::cerr << "Expected expression" << std::endl;
         exit(EXIT_SUCCESS);
       }
       try_consume(TokenType::close_paren, "Expected `)`");
@@ -112,8 +121,7 @@ public:
       auto term = m_allocator.alloc<NodeTerm>();
       term->var = term_paren;
       return term;
-    }
-     else {
+    } else {
       return {};
     }
   }
@@ -135,7 +143,7 @@ public:
         if (!prec.has_value() || prec < min_prec) {
           break;
         }
-      }else{
+      } else {
         break;
       }
 
@@ -178,7 +186,6 @@ public:
       expr_lhs->var = expr;
     }
     return expr_lhs;
-
   }
 
   std::optional<NodeStmt *> parse_stmt() {
@@ -235,9 +242,29 @@ public:
       auto stmt = m_allocator.alloc<NodeStmt>();
       stmt->var = stmt_let;
       return stmt;
+    } else if (peek().has_value() &&
+               peek().value().type == TokenType::open_curly) {
+      if (auto stmt_scope = parse_scope()) {
+        auto stmt = m_allocator.alloc<NodeStmt>();
+        stmt->var = stmt_scope.value();
+        return stmt;
+      }
+      return {};
     } else {
       return {};
     }
+  }
+
+  std::optional<NodeStmtScope *> parse_scope() {
+    if (!try_consume(TokenType::open_curly).has_value()) {
+      return {};
+    }
+    auto stmt_scope = m_allocator.alloc<NodeStmtScope>();
+    while (auto stmt = parse_stmt()) {
+      stmt_scope->stmts.push_back(stmt.value());
+    }
+    try_consume(TokenType::close_curly, "Expected `}`");
+    return stmt_scope;
   }
 
   std::optional<NodeProg> parse_prog() {
