@@ -28,17 +28,35 @@ enum class TokenType {
   close_curly,
   string_kw,
   char_kw,
-  int_kw
+  int_kw,
+  if_kw,
+  else_kw,
+  dollar,
+  comma,
+  double_eq,
+  not_equal,
+  less,
+  less_eq,
+  greater,
+  greater_eq
 };
 
 std::optional<int> bin_prec(TokenType type) {
   switch (type) {
+  case TokenType::double_eq:
+  case TokenType::not_equal:
+    return 1;
+  case TokenType::less:
+  case TokenType::less_eq:
+  case TokenType::greater:
+  case TokenType::greater_eq:
+    return 2;
   case TokenType::plus:
   case TokenType::minus:
-    return 1;
+    return 3;
   case TokenType::star:
   case TokenType::fslash:
-    return 2;
+    return 4;
   default:
     return {};
   }
@@ -74,6 +92,12 @@ public:
         } else if (buf == "let") {
           tokens.push_back({.type = TokenType::let});
           buf.clear();
+        } else if (buf == "if") {
+          tokens.push_back({.type = TokenType::if_kw});
+          buf.clear();
+        } else if (buf == "else") {
+          tokens.push_back({.type = TokenType::else_kw});
+          buf.clear();
         } else if (buf == "string") {
           tokens.push_back({.type = TokenType::string_kw});
           buf.clear();
@@ -106,7 +130,37 @@ public:
         tokens.push_back({.type = TokenType::semi});
       } else if (peek().value() == '=') {
         consume();
-        tokens.push_back({.type = TokenType::eq});
+        if (peek().has_value() && peek().value() == '=') {
+          consume();
+          tokens.push_back({.type = TokenType::double_eq});
+        } else {
+          tokens.push_back({.type = TokenType::eq});
+        }
+      } else if (peek().value() == '!') {
+        consume();
+        if (peek().has_value() && peek().value() == '=') {
+          consume();
+          tokens.push_back({.type = TokenType::not_equal});
+        } else {
+          std::cerr << "Unexpected character '!'" << std::endl;
+          exit(EXIT_FAILURE);
+        }
+      } else if (peek().value() == '<') {
+        consume();
+        if (peek().has_value() && peek().value() == '=') {
+          consume();
+          tokens.push_back({.type = TokenType::less_eq});
+        } else {
+          tokens.push_back({.type = TokenType::less});
+        }
+      } else if (peek().value() == '>') {
+        consume();
+        if (peek().has_value() && peek().value() == '=') {
+          consume();
+          tokens.push_back({.type = TokenType::greater_eq});
+        } else {
+          tokens.push_back({.type = TokenType::greater});
+        }
       } else if (peek().value() == '+') {
         consume();
         tokens.push_back({.type = TokenType::plus});
@@ -225,6 +279,12 @@ public:
       } else if (peek().value() == '}') {
         consume();
         tokens.push_back({.type = TokenType::close_curly});
+      } else if (peek().value() == '$') {
+        consume();
+        tokens.push_back({.type = TokenType::dollar});
+      } else if (peek().value() == ',') {
+        consume();
+        tokens.push_back({.type = TokenType::comma});
       } else if (std::isspace(static_cast<unsigned char>(peek().value()))) {
         consume();
         continue;

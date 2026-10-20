@@ -189,6 +189,72 @@ public:
         gen->m_output << "    div rbx\n";
         gen->push("rax");
       }
+
+      void operator()(const NodeBinExprEq *eq) const {
+        gen->gen_expr(eq->lhs);
+        gen->gen_expr(eq->rhs);
+        gen->pop("rbx");
+        gen->pop("rax");
+        gen->m_output << "    cmp rax, rbx\n";
+        gen->m_output << "    sete al\n";
+        gen->m_output << "    movzx rax, al\n";
+        gen->push("rax");
+      }
+
+      void operator()(const NodeBinExprNotEq *neq) const {
+        gen->gen_expr(neq->lhs);
+        gen->gen_expr(neq->rhs);
+        gen->pop("rbx");
+        gen->pop("rax");
+        gen->m_output << "    cmp rax, rbx\n";
+        gen->m_output << "    setne al\n";
+        gen->m_output << "    movzx rax, al\n";
+        gen->push("rax");
+      }
+
+      void operator()(const NodeBinExprLess *less) const {
+        gen->gen_expr(less->lhs);
+        gen->gen_expr(less->rhs);
+        gen->pop("rbx");
+        gen->pop("rax");
+        gen->m_output << "    cmp rax, rbx\n";
+        gen->m_output << "    setl al\n";
+        gen->m_output << "    movzx rax, al\n";
+        gen->push("rax");
+      }
+
+      void operator()(const NodeBinExprLessEq *less_eq) const {
+        gen->gen_expr(less_eq->lhs);
+        gen->gen_expr(less_eq->rhs);
+        gen->pop("rbx");
+        gen->pop("rax");
+        gen->m_output << "    cmp rax, rbx\n";
+        gen->m_output << "    setle al\n";
+        gen->m_output << "    movzx rax, al\n";
+        gen->push("rax");
+      }
+
+      void operator()(const NodeBinExprGreater *greater) const {
+        gen->gen_expr(greater->lhs);
+        gen->gen_expr(greater->rhs);
+        gen->pop("rbx");
+        gen->pop("rax");
+        gen->m_output << "    cmp rax, rbx\n";
+        gen->m_output << "    setg al\n";
+        gen->m_output << "    movzx rax, al\n";
+        gen->push("rax");
+      }
+
+      void operator()(const NodeBinExprGreaterEq *greater_eq) const {
+        gen->gen_expr(greater_eq->lhs);
+        gen->gen_expr(greater_eq->rhs);
+        gen->pop("rbx");
+        gen->pop("rax");
+        gen->m_output << "    cmp rax, rbx\n";
+        gen->m_output << "    setge al\n";
+        gen->m_output << "    movzx rax, al\n";
+        gen->push("rax");
+      }
     };
 
     BinExprVisitor visitor{.gen = this};
@@ -253,51 +319,105 @@ public:
         gen->gen_expr(stmt_let->expr);
       }
       void operator()(const NodeStmtPrint *stmt_print) const {
-        VarType type = gen->get_expr_type(stmt_print->expr);
-        gen->gen_expr(stmt_print->expr);
-        if (type == VarType::Char) {
-          gen->pop("rax");
-          gen->m_output << "    push rax\n";
-          gen->m_output << "    mov rax, 1\n";
-          gen->m_output << "    mov rdi, 1\n";
-          gen->m_output << "    mov rsi, rsp\n";
-          gen->m_output << "    mov rdx, 1\n";
-          gen->m_output << "    syscall\n";
-          gen->m_output << "    pop rax\n";
-          // Print newline
-          gen->m_output << "    mov rax, 1\n";
-          gen->m_output << "    mov rdi, 1\n";
-          gen->m_output << "    mov rsi, newline_char\n";
-          gen->m_output << "    mov rdx, 1\n";
-          gen->m_output << "    syscall\n";
-        } else {
-          // String: rsi has pointer to null-terminated string
-          gen->pop("rsi");
-          std::string id = std::to_string(gen->m_label_count++);
-          gen->m_output << "    mov rdx, 0\n";
-          gen->m_output << ".L_strlen_" << id << ":\n";
-          gen->m_output << "    cmp byte [rsi + rdx], 0\n";
-          gen->m_output << "    je .L_strprint_" << id << "\n";
-          gen->m_output << "    inc rdx\n";
-          gen->m_output << "    jmp .L_strlen_" << id << "\n";
-          gen->m_output << ".L_strprint_" << id << ":\n";
-          gen->m_output << "    mov rax, 1\n";
-          gen->m_output << "    mov rdi, 1\n";
-          gen->m_output << "    syscall\n";
-          // Print newline
-          gen->m_output << "    mov rax, 1\n";
-          gen->m_output << "    mov rdi, 1\n";
-          gen->m_output << "    mov rsi, newline_char\n";
-          gen->m_output << "    mov rdx, 1\n";
-          gen->m_output << "    syscall\n";
+        for (const NodeExpr *expr : stmt_print->exprs) {
+          VarType type = gen->get_expr_type(expr);
+          gen->gen_expr(expr);
+          if (type == VarType::Int) {
+            gen->pop("rax");
+            std::string id = std::to_string(gen->m_label_count++);
+            gen->m_output << "    sub rsp, 32\n";
+            gen->m_output << "    lea rsi, [rsp + 31]\n";
+            gen->m_output << "    mov byte [rsi], 0\n";
+            gen->m_output << "    mov rcx, 0\n";
+            gen->m_output << "    cmp rax, 0\n";
+            gen->m_output << "    jne .L_check_neg_" << id << "\n";
+            gen->m_output << "    dec rsi\n";
+            gen->m_output << "    mov byte [rsi], '0'\n";
+            gen->m_output << "    inc rcx\n";
+            gen->m_output << "    jmp .L_print_int_" << id << "\n";
+            gen->m_output << ".L_check_neg_" << id << ":\n";
+            gen->m_output << "    mov r8, 0\n";
+            gen->m_output << "    cmp rax, 0\n";
+            gen->m_output << "    jge .L_div_loop_" << id << "\n";
+            gen->m_output << "    mov r8, 1\n";
+            gen->m_output << "    neg rax\n";
+            gen->m_output << ".L_div_loop_" << id << ":\n";
+            gen->m_output << "    cmp rax, 0\n";
+            gen->m_output << "    je .L_done_div_" << id << "\n";
+            gen->m_output << "    xor rdx, rdx\n";
+            gen->m_output << "    mov rbx, 10\n";
+            gen->m_output << "    div rbx\n";
+            gen->m_output << "    add rdx, '0'\n";
+            gen->m_output << "    dec rsi\n";
+            gen->m_output << "    mov byte [rsi], dl\n";
+            gen->m_output << "    inc rcx\n";
+            gen->m_output << "    jmp .L_div_loop_" << id << "\n";
+            gen->m_output << ".L_done_div_" << id << ":\n";
+            gen->m_output << "    cmp r8, 1\n";
+            gen->m_output << "    jne .L_print_int_" << id << "\n";
+            gen->m_output << "    dec rsi\n";
+            gen->m_output << "    mov byte [rsi], '-'\n";
+            gen->m_output << "    inc rcx\n";
+            gen->m_output << ".L_print_int_" << id << ":\n";
+            gen->m_output << "    mov rax, 1\n";
+            gen->m_output << "    mov rdi, 1\n";
+            gen->m_output << "    mov rdx, rcx\n";
+            gen->m_output << "    syscall\n";
+            gen->m_output << "    add rsp, 32\n";
+          } else if (type == VarType::Char) {
+            gen->pop("rax");
+            gen->m_output << "    push rax\n";
+            gen->m_output << "    mov rax, 1\n";
+            gen->m_output << "    mov rdi, 1\n";
+            gen->m_output << "    mov rsi, rsp\n";
+            gen->m_output << "    mov rdx, 1\n";
+            gen->m_output << "    syscall\n";
+            gen->m_output << "    pop rax\n";
+          } else {
+            // String: rsi has pointer to null-terminated string
+            gen->pop("rsi");
+            std::string id = std::to_string(gen->m_label_count++);
+            gen->m_output << "    mov rdx, 0\n";
+            gen->m_output << ".L_strlen_" << id << ":\n";
+            gen->m_output << "    cmp byte [rsi + rdx], 0\n";
+            gen->m_output << "    je .L_strprint_" << id << "\n";
+            gen->m_output << "    inc rdx\n";
+            gen->m_output << "    jmp .L_strlen_" << id << "\n";
+            gen->m_output << ".L_strprint_" << id << ":\n";
+            gen->m_output << "    mov rax, 1\n";
+            gen->m_output << "    mov rdi, 1\n";
+            gen->m_output << "    syscall\n";
+          }
         }
+        // Print newline at the end of print statement
+        gen->m_output << "    mov rax, 1\n";
+        gen->m_output << "    mov rdi, 1\n";
+        gen->m_output << "    mov rsi, newline_char\n";
+        gen->m_output << "    mov rdx, 1\n";
+        gen->m_output << "    syscall\n";
       }
       void operator()(const NodeStmtScope *stmt_scope) const {
-        gen->begin_scope();
-        for (const NodeStmt *stmt : stmt_scope->stmts) {
-          gen->gen_stmt(stmt);
+        gen->gen_stmt_scope(stmt_scope);
+      }
+      void operator()(const NodeStmtIf *stmt_if) const {
+        std::string id = std::to_string(gen->m_label_count++);
+        std::string end_label = ".L_endif_" + id;
+        std::string next_label = stmt_if->pred.has_value() ? (".L_nextif_" + id) : end_label;
+
+        gen->gen_expr(stmt_if->expr);
+        gen->pop("rax");
+        gen->m_output << "    cmp rax, 0\n";
+        gen->m_output << "    je " << next_label << "\n";
+
+        gen->gen_stmt_scope(stmt_if->scope);
+
+        if (stmt_if->pred.has_value()) {
+          gen->m_output << "    jmp " << end_label << "\n";
+          gen->m_output << next_label << ":\n";
+          gen->gen_if_pred(stmt_if->pred.value(), end_label);
         }
-        gen->end_scope();
+
+        gen->m_output << end_label << ":\n";
       }
       void operator()(const NodeStmtAssign *stmt_assign) const {
         const auto it = std::find_if(
@@ -330,6 +450,43 @@ public:
 
     StmtVisitor visitor{.gen = this};
     std::visit(visitor, stmt->var);
+  }
+
+  void gen_stmt_scope(const NodeStmtScope *stmt_scope) {
+    begin_scope();
+    for (const NodeStmt *stmt : stmt_scope->stmts) {
+      gen_stmt(stmt);
+    }
+    end_scope();
+  }
+
+  void gen_if_pred(const NodeIfPred *pred, const std::string &end_label) {
+    struct PredVisitor {
+      Generator *gen;
+      const std::string &end_label;
+      void operator()(const NodeIfPredElif *elif) const {
+        std::string id = std::to_string(gen->m_label_count++);
+        std::string next_label = elif->pred.has_value() ? (".L_nextif_" + id) : end_label;
+
+        gen->gen_expr(elif->expr);
+        gen->pop("rax");
+        gen->m_output << "    cmp rax, 0\n";
+        gen->m_output << "    je " << next_label << "\n";
+
+        gen->gen_stmt_scope(elif->scope);
+
+        if (elif->pred.has_value()) {
+          gen->m_output << "    jmp " << end_label << "\n";
+          gen->m_output << next_label << ":\n";
+          gen->gen_if_pred(elif->pred.value(), end_label);
+        }
+      }
+      void operator()(const NodeIfPredElse *else_pred) const {
+        gen->gen_stmt_scope(else_pred->scope);
+      }
+    };
+    PredVisitor visitor{.gen = this, .end_label = end_label};
+    std::visit(visitor, pred->var);
   }
 
   [[nodiscard]] std::string gen_prog() {

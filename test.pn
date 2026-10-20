@@ -7,5 +7,14 @@ let string a = "I no pata...";
     x = x + y;
 }
 
+let z = 10;
+if (z == 1) {
+    print("z is 1");
+} else if (z == 10) {
+    print("z is ten!");
+} else {
+    print("fallback else");
+}
+
 print(a);
 exit(x);

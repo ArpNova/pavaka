@@ -23,7 +23,7 @@ enum class VarType {
 struct NodeExpr;
 
 struct NodeStmtPrint {
-  NodeExpr *expr;
+  std::vector<NodeExpr *> exprs;
 };
 
 struct NodeTermIntLit {
@@ -66,9 +66,41 @@ struct NodeBinExprDiv {
   NodeExpr *rhs;
 };
 
+struct NodeBinExprEq {
+  NodeExpr *lhs;
+  NodeExpr *rhs;
+};
+
+struct NodeBinExprNotEq {
+  NodeExpr *lhs;
+  NodeExpr *rhs;
+};
+
+struct NodeBinExprLess {
+  NodeExpr *lhs;
+  NodeExpr *rhs;
+};
+
+struct NodeBinExprLessEq {
+  NodeExpr *lhs;
+  NodeExpr *rhs;
+};
+
+struct NodeBinExprGreater {
+  NodeExpr *lhs;
+  NodeExpr *rhs;
+};
+
+struct NodeBinExprGreaterEq {
+  NodeExpr *lhs;
+  NodeExpr *rhs;
+};
+
 struct NodeBinExpr {
   std::variant<NodeBinExprAdd *, NodeBinExprMulti *, NodeBinExprSub *,
-               NodeBinExprDiv *>
+               NodeBinExprDiv *, NodeBinExprEq *, NodeBinExprNotEq *,
+               NodeBinExprLess *, NodeBinExprLessEq *, NodeBinExprGreater *,
+               NodeBinExprGreaterEq *>
       var;
 };
 
@@ -103,9 +135,31 @@ struct NodeStmtAssign {
   NodeExpr *expr;
 };
 
+struct NodeIfPred;
+
+struct NodeStmtIf {
+  NodeExpr *expr;
+  NodeStmtScope *scope;
+  std::optional<NodeIfPred *> pred;
+};
+
+struct NodeIfPredElif {
+  NodeExpr *expr;
+  NodeStmtScope *scope;
+  std::optional<NodeIfPred *> pred;
+};
+
+struct NodeIfPredElse {
+  NodeStmtScope *scope;
+};
+
+struct NodeIfPred {
+  std::variant<NodeIfPredElif *, NodeIfPredElse *> var;
+};
+
 struct NodeStmt {
   std::variant<NodeStmtExit *, NodeStmtLet *, NodeStmtPrint *, NodeStmtScope *,
-               NodeStmtAssign *>
+               NodeStmtAssign *, NodeStmtIf *>
       var;
 };
 
@@ -141,6 +195,16 @@ public:
     } else if (auto ident = try_consume(TokenType::ident)) {
       auto expr_ident = m_allocator.alloc<NodeTermIdent>();
       expr_ident->ident = ident.value();
+      auto term = m_allocator.alloc<NodeTerm>();
+      term->var = expr_ident;
+      return term;
+    } else if (peek().has_value() && peek().value().type == TokenType::dollar) {
+      consume();
+      try_consume(TokenType::open_paren, "Expected `(` after `$`");
+      Token ident = try_consume(TokenType::ident, "Expected identifier inside `$()`");
+      try_consume(TokenType::close_paren, "Expected `)` after identifier");
+      auto expr_ident = m_allocator.alloc<NodeTermIdent>();
+      expr_ident->ident = ident;
       auto term = m_allocator.alloc<NodeTerm>();
       term->var = expr_ident;
       return term;
@@ -216,6 +280,36 @@ public:
         div->lhs = expr_lhs2;
         div->rhs = expr_rhs.value();
         expr->var = div;
+      } else if (op.type == TokenType::double_eq) {
+        auto eq = m_allocator.alloc<NodeBinExprEq>();
+        eq->lhs = expr_lhs2;
+        eq->rhs = expr_rhs.value();
+        expr->var = eq;
+      } else if (op.type == TokenType::not_equal) {
+        auto neq = m_allocator.alloc<NodeBinExprNotEq>();
+        neq->lhs = expr_lhs2;
+        neq->rhs = expr_rhs.value();
+        expr->var = neq;
+      } else if (op.type == TokenType::less) {
+        auto less = m_allocator.alloc<NodeBinExprLess>();
+        less->lhs = expr_lhs2;
+        less->rhs = expr_rhs.value();
+        expr->var = less;
+      } else if (op.type == TokenType::less_eq) {
+        auto less_eq = m_allocator.alloc<NodeBinExprLessEq>();
+        less_eq->lhs = expr_lhs2;
+        less_eq->rhs = expr_rhs.value();
+        expr->var = less_eq;
+      } else if (op.type == TokenType::greater) {
+        auto greater = m_allocator.alloc<NodeBinExprGreater>();
+        greater->lhs = expr_lhs2;
+        greater->rhs = expr_rhs.value();
+        expr->var = greater;
+      } else if (op.type == TokenType::greater_eq) {
+        auto greater_eq = m_allocator.alloc<NodeBinExprGreaterEq>();
+        greater_eq->lhs = expr_lhs2;
+        greater_eq->rhs = expr_rhs.value();
+        expr->var = greater_eq;
       }
 
       expr_lhs->var = expr;
@@ -229,17 +323,25 @@ public:
       consume();
       consume();
 
-      auto expr = parse_expr();
-      if (!expr.has_value()) {
-        std::cerr << "Expected expression in print statement" << std::endl;
-        exit(EXIT_FAILURE);
+      std::vector<NodeExpr *> exprs;
+      while (peek().has_value() && peek().value().type != TokenType::close_paren) {
+        auto expr = parse_expr();
+        if (!expr.has_value()) {
+          std::cerr << "Expected expression in print statement" << std::endl;
+          exit(EXIT_FAILURE);
+        }
+        exprs.push_back(expr.value());
+
+        if (peek().has_value() && peek().value().type == TokenType::comma) {
+          consume();
+        }
       }
 
       try_consume(TokenType::close_paren, "Expected `)`");
       try_consume(TokenType::semi, "Expected `;`");
 
       auto stmt_print = m_allocator.alloc<NodeStmtPrint>();
-      stmt_print->expr = expr.value();
+      stmt_print->exprs = exprs;
 
       auto stmt = m_allocator.alloc<NodeStmt>();
       stmt->var = stmt_print;
@@ -312,6 +414,28 @@ public:
       stmt->var = stmt_assign;
       return stmt;
     } else if (peek().has_value() &&
+               peek().value().type == TokenType::if_kw) {
+      consume(); // consume 'if'
+      try_consume(TokenType::open_paren, "Expected `(` after `if`");
+      auto expr = parse_expr();
+      if (!expr.has_value()) {
+        std::cerr << "Expected expression in if statement" << std::endl;
+        exit(EXIT_FAILURE);
+      }
+      try_consume(TokenType::close_paren, "Expected `)` after expression");
+      auto scope = parse_scope();
+      if (!scope.has_value()) {
+        std::cerr << "Expected `{` in if statement" << std::endl;
+        exit(EXIT_FAILURE);
+      }
+      auto stmt_if = m_allocator.alloc<NodeStmtIf>();
+      stmt_if->expr = expr.value();
+      stmt_if->scope = scope.value();
+      stmt_if->pred = parse_if_pred();
+      auto stmt = m_allocator.alloc<NodeStmt>();
+      stmt->var = stmt_if;
+      return stmt;
+    } else if (peek().has_value() &&
                peek().value().type == TokenType::open_curly) {
       if (auto stmt_scope = parse_scope()) {
         auto stmt = m_allocator.alloc<NodeStmt>();
@@ -322,6 +446,46 @@ public:
     } else {
       return {};
     }
+  }
+
+  std::optional<NodeIfPred *> parse_if_pred() {
+    if (peek().has_value() && peek().value().type == TokenType::else_kw) {
+      consume(); // consume 'else'
+      if (peek().has_value() && peek().value().type == TokenType::if_kw) {
+        consume(); // consume 'if'
+        try_consume(TokenType::open_paren, "Expected `(` after `if`");
+        auto expr = parse_expr();
+        if (!expr.has_value()) {
+          std::cerr << "Expected expression in else if" << std::endl;
+          exit(EXIT_FAILURE);
+        }
+        try_consume(TokenType::close_paren, "Expected `)` after expression");
+        auto scope = parse_scope();
+        if (!scope.has_value()) {
+          std::cerr << "Expected `{` in else if" << std::endl;
+          exit(EXIT_FAILURE);
+        }
+        auto elif = m_allocator.alloc<NodeIfPredElif>();
+        elif->expr = expr.value();
+        elif->scope = scope.value();
+        elif->pred = parse_if_pred();
+        auto pred = m_allocator.alloc<NodeIfPred>();
+        pred->var = elif;
+        return pred;
+      } else {
+        auto scope = parse_scope();
+        if (!scope.has_value()) {
+          std::cerr << "Expected `{` after `else`" << std::endl;
+          exit(EXIT_FAILURE);
+        }
+        auto else_pred = m_allocator.alloc<NodeIfPredElse>();
+        else_pred->scope = scope.value();
+        auto pred = m_allocator.alloc<NodeIfPred>();
+        pred->var = else_pred;
+        return pred;
+      }
+    }
+    return {};
   }
 
   std::optional<NodeStmtScope *> parse_scope() {
