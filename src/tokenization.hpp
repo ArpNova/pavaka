@@ -21,10 +21,14 @@ enum class TokenType {
   minus,
   print,
   string_lit,
+  char_lit,
   star,
   fslash,
   open_curly,
-  close_curly
+  close_curly,
+  string_kw,
+  char_kw,
+  int_kw
 };
 
 std::optional<int> bin_prec(TokenType type) {
@@ -53,10 +57,12 @@ public:
     std::vector<Token> tokens;
     std::string buf;
     while (peek().has_value()) {
-      if (std::isalpha(static_cast<unsigned char>(peek().value()))) {
+      if (std::isalpha(static_cast<unsigned char>(peek().value())) ||
+          peek().value() == '_') {
         buf.push_back(consume());
         while (peek().has_value() &&
-               std::isalnum(static_cast<unsigned char>(peek().value()))) {
+               (std::isalnum(static_cast<unsigned char>(peek().value())) ||
+                peek().value() == '_')) {
           buf.push_back(consume());
         }
         if (buf == "exit") {
@@ -67,6 +73,15 @@ public:
           buf.clear();
         } else if (buf == "let") {
           tokens.push_back({.type = TokenType::let});
+          buf.clear();
+        } else if (buf == "string") {
+          tokens.push_back({.type = TokenType::string_kw});
+          buf.clear();
+        } else if (buf == "char") {
+          tokens.push_back({.type = TokenType::char_kw});
+          buf.clear();
+        } else if (buf == "int") {
+          tokens.push_back({.type = TokenType::int_kw});
           buf.clear();
         } else {
           tokens.push_back({.type = TokenType::ident, .value = buf});
@@ -98,13 +113,96 @@ public:
       } else if (peek().value() == '-') {
         consume();
         tokens.push_back({.type = TokenType::minus});
+      } else if (peek().value() == '\'') {
+        consume();
+
+        std::string char_value;
+
+        if (peek().has_value() && peek().value() == '\\') {
+          consume();
+          if (!peek().has_value()) {
+            std::cerr << "Unterminated escape sequence in character literal"
+                      << std::endl;
+            exit(EXIT_FAILURE);
+          }
+          char esc = consume();
+          switch (esc) {
+          case 'n':
+            char_value.push_back('\n');
+            break;
+          case 't':
+            char_value.push_back('\t');
+            break;
+          case 'r':
+            char_value.push_back('\r');
+            break;
+          case '0':
+            char_value.push_back('\0');
+            break;
+          case '\'':
+            char_value.push_back('\'');
+            break;
+          case '\\':
+            char_value.push_back('\\');
+            break;
+          default:
+            char_value.push_back(esc);
+            break;
+          }
+        } else if (peek().has_value() && peek().value() != '\'') {
+          char_value.push_back(consume());
+        } else {
+          std::cerr << "Empty character literal" << std::endl;
+          exit(EXIT_FAILURE);
+        }
+
+        if (!peek().has_value() || peek().value() != '\'') {
+          std::cerr << "Unterminated character literal" << std::endl;
+          exit(EXIT_FAILURE);
+        }
+        consume();
+
+        tokens.push_back({.type = TokenType::char_lit, .value = char_value});
       } else if (peek().value() == '"') {
         consume();
 
         std::string string_value;
 
         while (peek().has_value() && peek().value() != '"') {
-          string_value.push_back(consume());
+          if (peek().value() == '\\') {
+            consume();
+            if (!peek().has_value()) {
+              std::cerr << "Unterminated escape sequence in string literal"
+                        << std::endl;
+              exit(EXIT_FAILURE);
+            }
+            char esc = consume();
+            switch (esc) {
+            case 'n':
+              string_value.push_back('\n');
+              break;
+            case 't':
+              string_value.push_back('\t');
+              break;
+            case 'r':
+              string_value.push_back('\r');
+              break;
+            case '0':
+              string_value.push_back('\0');
+              break;
+            case '"':
+              string_value.push_back('"');
+              break;
+            case '\\':
+              string_value.push_back('\\');
+              break;
+            default:
+              string_value.push_back(esc);
+              break;
+            }
+          } else {
+            string_value.push_back(consume());
+          }
         }
 
         if (!peek().has_value()) {

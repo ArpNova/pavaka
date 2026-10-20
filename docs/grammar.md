@@ -4,7 +4,9 @@ $$
     [\text{Stmt}] &\to
     \begin{cases}
         \text{exit}([\text{Expr}]); \\
-        \text{print}(\text{string\_lit}); \\
+        \text{print}([\text{Expr}]); \\
+        \text{let}\space\text{string}\space\text{ident} = [\text{Expr}]; \\
+        \text{let}\space\text{char}\space\text{ident} = [\text{Expr}]; \\
         \text{let}\space\text{ident} = [\text{Expr}]; \\
         \text{ident} = [\text{Expr}]; \\
         \text{if} ([\text{Expr}])[\text{Scope}]\\
@@ -26,6 +28,8 @@ $$
     [\text{Term}] &\to
     \begin{cases}
         \text{int\_lit} \\
+        \text{string\_lit} \\
+        \text{char\_lit} \\
         \text{ident} \\
         ([\text{Expr}])
     \end{cases}

@@ -14,19 +14,33 @@
 #include "./arena.hpp"
 #include "tokenization.hpp"
 
+enum class VarType {
+  Int,
+  String,
+  Char
+};
+
+struct NodeExpr;
+
 struct NodeStmtPrint {
-  Token string_lit;
+  NodeExpr *expr;
 };
 
 struct NodeTermIntLit {
   Token int_lit;
 };
 
+struct NodeTermCharLit {
+  Token char_lit;
+};
+
+struct NodeTermStringLit {
+  Token string_lit;
+};
+
 struct NodeTermIdent {
   Token ident;
 };
-
-struct NodeExpr;
 
 struct NodeTermParen {
   NodeExpr *expr;
@@ -59,7 +73,9 @@ struct NodeBinExpr {
 };
 
 struct NodeTerm {
-  std::variant<NodeTermIntLit *, NodeTermIdent *, NodeTermParen *> var;
+  std::variant<NodeTermIntLit *, NodeTermIdent *, NodeTermParen *,
+               NodeTermCharLit *, NodeTermStringLit *>
+      var;
 };
 
 struct NodeExpr {
@@ -71,6 +87,7 @@ struct NodeStmtExit {
 };
 
 struct NodeStmtLet {
+  VarType type;
   Token ident;
   NodeExpr *expr;
 };
@@ -109,6 +126,18 @@ public:
       auto term = m_allocator.alloc<NodeTerm>();
       term->var = term_int_lit;
       return term;
+    } else if (auto char_lit = try_consume(TokenType::char_lit)) {
+      auto term_char_lit = m_allocator.alloc<NodeTermCharLit>();
+      term_char_lit->char_lit = char_lit.value();
+      auto term = m_allocator.alloc<NodeTerm>();
+      term->var = term_char_lit;
+      return term;
+    } else if (auto string_lit = try_consume(TokenType::string_lit)) {
+      auto term_string_lit = m_allocator.alloc<NodeTermStringLit>();
+      term_string_lit->string_lit = string_lit.value();
+      auto term = m_allocator.alloc<NodeTerm>();
+      term->var = term_string_lit;
+      return term;
     } else if (auto ident = try_consume(TokenType::ident)) {
       auto expr_ident = m_allocator.alloc<NodeTermIdent>();
       expr_ident->ident = ident.value();
@@ -119,7 +148,7 @@ public:
       auto expr = parse_expr();
       if (!expr.has_value()) {
         std::cerr << "Expected expression" << std::endl;
-        exit(EXIT_SUCCESS);
+        exit(EXIT_FAILURE);
       }
       try_consume(TokenType::close_paren, "Expected `)`");
       auto term_paren = m_allocator.alloc<NodeTermParen>();
@@ -200,14 +229,17 @@ public:
       consume();
       consume();
 
-      auto string_lit =
-          try_consume(TokenType::string_lit, "Expected string literal");
+      auto expr = parse_expr();
+      if (!expr.has_value()) {
+        std::cerr << "Expected expression in print statement" << std::endl;
+        exit(EXIT_FAILURE);
+      }
 
       try_consume(TokenType::close_paren, "Expected `)`");
       try_consume(TokenType::semi, "Expected `;`");
 
       auto stmt_print = m_allocator.alloc<NodeStmtPrint>();
-      stmt_print->string_lit = string_lit;
+      stmt_print->expr = expr.value();
 
       auto stmt = m_allocator.alloc<NodeStmt>();
       stmt->var = stmt_print;
@@ -230,14 +262,28 @@ public:
       auto stmt = m_allocator.alloc<NodeStmt>();
       stmt->var = stmt_exit;
       return stmt;
-    } else if (peek().has_value() && peek().value().type == TokenType::let &&
-               peek(1).has_value() &&
-               peek(1).value().type == TokenType::ident &&
-               peek(2).has_value() && peek(2).value().type == TokenType::eq) {
+    } else if (peek().has_value() && peek().value().type == TokenType::let) {
       consume();
+      VarType var_type = VarType::Int;
+      if (peek().has_value() && peek().value().type == TokenType::string_kw) {
+        consume();
+        var_type = VarType::String;
+      } else if (peek().has_value() &&
+                 peek().value().type == TokenType::char_kw) {
+        consume();
+        var_type = VarType::Char;
+      } else if (peek().has_value() &&
+                 peek().value().type == TokenType::int_kw) {
+        consume();
+        var_type = VarType::Int;
+      }
+
+      Token ident = try_consume(TokenType::ident, "Expected identifier");
+      try_consume(TokenType::eq, "Expected `=`");
+
       auto stmt_let = m_allocator.alloc<NodeStmtLet>();
-      stmt_let->ident = consume();
-      consume();
+      stmt_let->type = var_type;
+      stmt_let->ident = ident;
       if (auto expr = parse_expr()) {
         stmt_let->expr = expr.value();
       } else {

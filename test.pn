@@ -1,4 +1,5 @@
 let x = (280)/2;
+let string a = "I no pata...";
 
 {
     print("I no pata");
@@ -6,4 +7,5 @@ let x = (280)/2;
     x = x + y;
 }
 
+print(a);
 exit(x);
