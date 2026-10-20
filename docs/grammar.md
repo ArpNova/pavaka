@@ -4,12 +4,13 @@ $$
     [\text{Stmt}] &\to
     \begin{cases}
         \text{exit}([\text{Expr}]); \\
+        \text{print}(\text{string\_lit}); \\
         \text{let}\space\text{ident} = [\text{Expr}]; \\
         \text{ident} = [\text{Expr}]; \\
         \text{if} ([\text{Expr}])[\text{Scope}]\\
         [\text{Scope}]
     \end{cases} \\
-    \text{[Scope]} &\to \{[\text{Stmt}]^*\} \\
+    [\text{Scope}] &\to \{[\text{Stmt}]^*\} \\
     [\text{Expr}] &\to
     \begin{cases}
         [\text{Term}] \\
