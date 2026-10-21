@@ -1,0 +1,24 @@
+// Test 3: While loop with continue skipping specific values
+let int i = 0;
+let int odd_sum = 0;
+
+while (i < 6) {
+    let int check = i;
+    i = i + 1;
+    if (check == 0) {
+        let int ignored = 111;
+        continue;
+    }
+    if (check == 2) {
+        continue;
+    }
+    if (check == 4) {
+        continue;
+    }
+
+    print("Processing odd number: " $(check));
+    odd_sum = odd_sum + check;
+}
+
+print("Sum of odd numbers (1 + 3 + 5): " $(odd_sum));
+exit(odd_sum); // Expected exit code: 1 + 3 + 5 = 9

@@ -1,0 +1,23 @@
+// Test 5: While loop populating and iterating through vectors
+let vector<int> squares;
+let int k = 1;
+
+while (k <= 5) {
+    let int sq = k * k;
+    squares.push_back(sq);
+    k = k + 1;
+}
+
+print("Generated squares vector: " $(squares));
+print("Vector size: " $(squares.size()));
+
+let int idx = 0;
+let int sum_squares = 0;
+while (idx < squares.size()) {
+    print("squares[" $(idx) "] = " $(squares[idx]));
+    sum_squares = sum_squares + squares[idx];
+    idx = idx + 1;
+}
+
+print("Sum of squares (1 + 4 + 9 + 16 + 25): " $(sum_squares));
+exit(sum_squares); // Expected exit: 55

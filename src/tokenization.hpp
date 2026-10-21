@@ -42,7 +42,10 @@ enum class TokenType {
   vector_kw,
   open_bracket,
   close_bracket,
-  dot
+  dot,
+  while_kw,
+  break_kw,
+  continue_kw
 };
 
 std::optional<int> bin_prec(TokenType type) {
@@ -113,6 +116,15 @@ public:
           buf.clear();
         } else if (buf == "vector") {
           tokens.push_back({.type = TokenType::vector_kw});
+          buf.clear();
+        } else if (buf == "while") {
+          tokens.push_back({.type = TokenType::while_kw});
+          buf.clear();
+        } else if (buf == "break") {
+          tokens.push_back({.type = TokenType::break_kw});
+          buf.clear();
+        } else if (buf == "continue") {
+          tokens.push_back({.type = TokenType::continue_kw});
           buf.clear();
         } else {
           tokens.push_back({.type = TokenType::ident, .value = buf});

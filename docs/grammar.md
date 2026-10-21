@@ -14,6 +14,9 @@ $$
         \text{ident}[[\text{Expr}]] = [\text{Expr}]; \\
         \text{ident} = [\text{Expr}]; \\
         \text{if}\space([\text{Expr}])[\text{Scope}][\text{IfPred}]? \\
+        \text{while}\space([\text{Expr}])[\text{Scope}] \\
+        \text{break}; \\
+        \text{continue}; \\
         [\text{Scope}]
     \end{cases} \\
     [\text{Type}] &\to \text{int} \mid \text{char} \mid \text{string} \\

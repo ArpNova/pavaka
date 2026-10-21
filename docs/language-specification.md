@@ -266,6 +266,28 @@ if (x > 0) {
 }
 ```
 
+### While Loops, Break, and Continue
+
+Void supports standard C-style `while` loops, along with `break` and `continue` statements:
+
+```pn
+let int i = 0;
+while (i < 10) {
+    if (i == 3) {
+        i = i + 1;
+        continue; // Skip iteration
+    }
+    if (i == 7) {
+        break;    // Exit loop
+    }
+    print("i = " $(i));
+    i = i + 1;
+}
+```
+
+#### Loop Invariant Stack Preservation
+When `break` or `continue` executes from inside nested blocks or conditionals, the compiler automatically computes the exact stack difference and restores the hardware stack pointer (`rsp`) via `add rsp, N*8` before jumping to the loop start or exit label, preventing stack leaks across iterations.
+
 ---
 
 ## 5. Expressions & Operators
@@ -399,7 +421,7 @@ cat out.asm
 | Feature | Current Status | Planned Implementation |
 | :--- | :--- | :--- |
 | **Data Types** | `int`, `char`, `string`, `vector<T>` (`int`, `char`, `string`) | `bool`, `float`, fixed-size arrays |
-| **Loops** | Not supported | `while (cond) { ... }`, `for (...)` loops |
+| **Loops** | `while (cond) { ... }`, `break`, `continue` | `for (...)` loops |
 | **Functions** | Single entry point (`_start`) | User-defined functions with System V AMD64 ABI call frames (`call`/`ret`) |
 | **Heap Memory** | Dynamic (`sys_brk` bump allocator for vectors) & Static (`.data`) | Full free-list / deallocation (`free`) |
 | **Floating Point** | Not supported | SSE/AVX registers (`xmm0`-`xmm7`) |

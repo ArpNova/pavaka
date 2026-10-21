@@ -33,6 +33,7 @@ exit(status);
   - `string`: Null-terminated string literals in `.data` with 64-bit pointers on the stack (`char*`), supporting pointer copying and reassignment.
   - `vector<T>`: C++ `std::vector`-style dynamic arrays on the heap (`sys_brk`) for `int`, `char`, and `string`, supporting `.push_back()`, `.pop_back()`, `.size()`, element indexing (`v[i]`), and initializer lists (`{...}`).
 - **Control Flow**:
+  - `while (cond) { ... }` loops with full support for `break;` and `continue;` with automatic stack preservation.
   - `if`, `else if`, and `else` statements with C-style truthiness (zero is falsy, non-zero is truthy).
   - Comparison operators (`==`, `!=`, `<`, `<=`, `>`, `>=`) and arithmetic (`+`, `-`, `*`, `/`) with Pratt operator precedence.
 - **Lexical Scopes**:

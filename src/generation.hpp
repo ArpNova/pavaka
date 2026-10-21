@@ -60,6 +60,12 @@ public:
     size_t stack_size;
   };
 
+  struct LoopContext {
+    std::string start_label;
+    std::string end_label;
+    size_t stack_size;
+  };
+
   std::string get_vector_data_addr(const Var &var) const {
     return "QWORD [rsp + " + std::to_string((m_stack_size - var.stack_loc - 1) * 8) + "]";
   }
@@ -849,6 +855,57 @@ public:
                       << (gen->m_stack_size - it->stack_loc - 1) * 8
                       << "], rax\n";
       }
+
+      void operator()(const NodeStmtWhile *stmt_while) const {
+        std::string id = std::to_string(gen->m_label_count++);
+        std::string start_label = ".L_while_start_" + id;
+        std::string end_label = ".L_while_end_" + id;
+
+        gen->m_output << start_label << ":\n";
+        gen->m_loops.push_back(LoopContext{
+            .start_label = start_label,
+            .end_label = end_label,
+            .stack_size = gen->m_stack_size,
+        });
+
+        gen->gen_expr(stmt_while->expr);
+        gen->pop("rax");
+        gen->m_output << "    cmp rax, 0\n";
+        gen->m_output << "    je " << end_label << "\n";
+
+        gen->gen_stmt_scope(stmt_while->scope);
+
+        gen->m_output << "    jmp " << start_label << "\n";
+        gen->m_output << end_label << ":\n";
+
+        gen->m_loops.pop_back();
+      }
+
+      void operator()(const NodeStmtBreak *) const {
+        if (gen->m_loops.empty()) {
+          std::cerr << "Break statement outside of while loop" << std::endl;
+          exit(EXIT_FAILURE);
+        }
+        const LoopContext &loop = gen->m_loops.back();
+        size_t slots_to_pop = gen->m_stack_size - loop.stack_size;
+        if (slots_to_pop > 0) {
+          gen->m_output << "    add rsp, " << (slots_to_pop * 8) << "\n";
+        }
+        gen->m_output << "    jmp " << loop.end_label << "\n";
+      }
+
+      void operator()(const NodeStmtContinue *) const {
+        if (gen->m_loops.empty()) {
+          std::cerr << "Continue statement outside of while loop" << std::endl;
+          exit(EXIT_FAILURE);
+        }
+        const LoopContext &loop = gen->m_loops.back();
+        size_t slots_to_pop = gen->m_stack_size - loop.stack_size;
+        if (slots_to_pop > 0) {
+          gen->m_output << "    add rsp, " << (slots_to_pop * 8) << "\n";
+        }
+        gen->m_output << "    jmp " << loop.start_label << "\n";
+      }
     };
 
     StmtVisitor visitor{.gen = this};
@@ -962,6 +1019,7 @@ private:
   size_t m_stack_size = 0;
   std::vector<Var> m_vars{};
   std::vector<Scope> m_scopes{};
+  mutable std::vector<LoopContext> m_loops{};
   std::stringstream m_data;
   size_t m_string_count = 0;
   size_t m_label_count = 0;

@@ -1,0 +1,32 @@
+// Test 7: Advanced vectors with dynamic reallocation and scope cleanup
+let vector<int> empty_vec;
+print("Empty vector: " $(empty_vec));
+print("Empty size: " $(empty_vec.size()));
+
+// Grow beyond initial capacity of 4 to test reallocation
+empty_vec.push_back(1);
+empty_vec.push_back(2);
+empty_vec.push_back(3);
+empty_vec.push_back(4);
+empty_vec.push_back(5);
+empty_vec.push_back(6);
+empty_vec.push_back(7);
+empty_vec.push_back(8);
+empty_vec.push_back(9);
+print("Reallocated vector: " $(empty_vec));
+print("Size after 9 pushes: " $(empty_vec.size()));
+
+let sum = empty_vec[0] + empty_vec[8];
+print("Sum of first and last: " $(sum));
+
+// Test scope exit
+let outer_val = 123;
+{
+    let vector<string> inner_vec = {"scope", "test"};
+    print("Inner vec: " $(inner_vec));
+    inner_vec.push_back("success");
+    print("Inner vec size: " $(inner_vec.size()));
+}
+print("Outer val intact: " $(outer_val));
+
+exit(sum);

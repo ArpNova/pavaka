@@ -1,0 +1,14 @@
+// Test 1: Basic while loop counting and accumulation
+let int i = 0;
+let int sum = 0;
+
+while (i < 5) {
+    print("Loop iteration: " $(i));
+    sum = sum + i;
+    i = i + 1;
+}
+
+print("Final sum: " $(sum));
+print("Final i: " $(i));
+
+exit(sum); // Expected exit code: 0 + 1 + 2 + 3 + 4 = 10

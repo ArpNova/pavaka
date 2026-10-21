@@ -1,0 +1,16 @@
+// Test 2: While loop with break and local stack variables
+let int count = 0;
+
+while (1) {
+    let int temp_local = count * 10;
+    if (count == 4) {
+        let int inner_local = 999;
+        print("Breaking out at count: " $(count) ", inner: " $(inner_local));
+        break;
+    }
+    print("Running count: " $(count) ", temp: " $(temp_local));
+    count = count + 1;
+}
+
+print("Loop terminated via break. Final count: " $(count));
+exit(count); // Expected exit code: 4

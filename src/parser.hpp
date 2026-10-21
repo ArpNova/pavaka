@@ -208,11 +208,21 @@ struct NodeStmtVectorAssign {
   NodeExpr *value;
 };
 
+struct NodeStmtWhile {
+  NodeExpr *expr;
+  NodeStmtScope *scope;
+};
+
+struct NodeStmtBreak {};
+
+struct NodeStmtContinue {};
+
 struct NodeStmt {
   std::variant<NodeStmtExit *, NodeStmtLet *, NodeStmtPrint *, NodeStmtScope *,
                NodeStmtAssign *, NodeStmtIf *,
                NodeStmtLetVector *, NodeStmtVectorPush *, NodeStmtVectorPop *,
-               NodeStmtVectorAssign *>
+               NodeStmtVectorAssign *,
+               NodeStmtWhile *, NodeStmtBreak *, NodeStmtContinue *>
       var;
 };
 
@@ -632,6 +642,43 @@ public:
       stmt_if->pred = parse_if_pred();
       auto stmt = m_allocator.alloc<NodeStmt>();
       stmt->var = stmt_if;
+      return stmt;
+    } else if (peek().has_value() &&
+               peek().value().type == TokenType::while_kw) {
+      consume(); // consume 'while'
+      try_consume(TokenType::open_paren, "Expected `(` after `while`");
+      auto expr = parse_expr();
+      if (!expr.has_value()) {
+        std::cerr << "Expected expression in while statement" << std::endl;
+        exit(EXIT_FAILURE);
+      }
+      try_consume(TokenType::close_paren, "Expected `)` after expression");
+      auto scope = parse_scope();
+      if (!scope.has_value()) {
+        std::cerr << "Expected `{` in while statement" << std::endl;
+        exit(EXIT_FAILURE);
+      }
+      auto stmt_while = m_allocator.alloc<NodeStmtWhile>();
+      stmt_while->expr = expr.value();
+      stmt_while->scope = scope.value();
+      auto stmt = m_allocator.alloc<NodeStmt>();
+      stmt->var = stmt_while;
+      return stmt;
+    } else if (peek().has_value() &&
+               peek().value().type == TokenType::break_kw) {
+      consume(); // consume 'break'
+      try_consume(TokenType::semi, "Expected `;` after `break`");
+      auto stmt_break = m_allocator.alloc<NodeStmtBreak>();
+      auto stmt = m_allocator.alloc<NodeStmt>();
+      stmt->var = stmt_break;
+      return stmt;
+    } else if (peek().has_value() &&
+               peek().value().type == TokenType::continue_kw) {
+      consume(); // consume 'continue'
+      try_consume(TokenType::semi, "Expected `;` after `continue`");
+      auto stmt_continue = m_allocator.alloc<NodeStmtContinue>();
+      auto stmt = m_allocator.alloc<NodeStmt>();
+      stmt->var = stmt_continue;
       return stmt;
     } else if (peek().has_value() &&
                peek().value().type == TokenType::open_curly) {
