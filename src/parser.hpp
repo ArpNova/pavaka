@@ -17,8 +17,28 @@
 enum class VarType {
   Int,
   String,
-  Char
+  Char,
+  VectorInt,
+  VectorChar,
+  VectorString
 };
+
+inline bool is_vector_type(VarType t) {
+  return t == VarType::VectorInt || t == VarType::VectorChar || t == VarType::VectorString;
+}
+
+inline VarType vector_elem_type(VarType t) {
+  switch (t) {
+  case VarType::VectorInt:
+    return VarType::Int;
+  case VarType::VectorChar:
+    return VarType::Char;
+  case VarType::VectorString:
+    return VarType::String;
+  default:
+    return VarType::Int;
+  }
+}
 
 struct NodeExpr;
 
@@ -44,6 +64,15 @@ struct NodeTermIdent {
 
 struct NodeTermParen {
   NodeExpr *expr;
+};
+
+struct NodeTermVectorAccess {
+  Token ident;
+  NodeExpr *index;
+};
+
+struct NodeTermVectorSize {
+  Token ident;
 };
 
 struct NodeBinExprAdd {
@@ -106,7 +135,8 @@ struct NodeBinExpr {
 
 struct NodeTerm {
   std::variant<NodeTermIntLit *, NodeTermIdent *, NodeTermParen *,
-               NodeTermCharLit *, NodeTermStringLit *>
+               NodeTermCharLit *, NodeTermStringLit *,
+               NodeTermVectorAccess *, NodeTermVectorSize *>
       var;
 };
 
@@ -157,9 +187,32 @@ struct NodeIfPred {
   std::variant<NodeIfPredElif *, NodeIfPredElse *> var;
 };
 
+struct NodeStmtLetVector {
+  VarType type;
+  Token ident;
+  std::vector<NodeExpr *> init_elements;
+};
+
+struct NodeStmtVectorPush {
+  Token ident;
+  NodeExpr *expr;
+};
+
+struct NodeStmtVectorPop {
+  Token ident;
+};
+
+struct NodeStmtVectorAssign {
+  Token ident;
+  NodeExpr *index;
+  NodeExpr *value;
+};
+
 struct NodeStmt {
   std::variant<NodeStmtExit *, NodeStmtLet *, NodeStmtPrint *, NodeStmtScope *,
-               NodeStmtAssign *, NodeStmtIf *>
+               NodeStmtAssign *, NodeStmtIf *,
+               NodeStmtLetVector *, NodeStmtVectorPush *, NodeStmtVectorPop *,
+               NodeStmtVectorAssign *>
       var;
 };
 
@@ -192,21 +245,57 @@ public:
       auto term = m_allocator.alloc<NodeTerm>();
       term->var = term_string_lit;
       return term;
-    } else if (auto ident = try_consume(TokenType::ident)) {
-      auto expr_ident = m_allocator.alloc<NodeTermIdent>();
-      expr_ident->ident = ident.value();
-      auto term = m_allocator.alloc<NodeTerm>();
-      term->var = expr_ident;
-      return term;
+    } else if (peek().has_value() && peek().value().type == TokenType::ident) {
+      Token ident = consume();
+      if (peek().has_value() && peek().value().type == TokenType::open_bracket) {
+        consume(); // consume '['
+        auto index_expr = parse_expr();
+        if (!index_expr.has_value()) {
+          std::cerr << "Expected expression inside `[]`" << std::endl;
+          exit(EXIT_FAILURE);
+        }
+        try_consume(TokenType::close_bracket, "Expected `]` after vector index");
+        auto term_acc = m_allocator.alloc<NodeTermVectorAccess>();
+        term_acc->ident = ident;
+        term_acc->index = index_expr.value();
+        auto term = m_allocator.alloc<NodeTerm>();
+        term->var = term_acc;
+        return term;
+      } else if (peek().has_value() && peek().value().type == TokenType::dot) {
+        consume(); // consume '.'
+        Token method = try_consume(TokenType::ident, "Expected method after `.`");
+        if (method.value.value() == "size") {
+          try_consume(TokenType::open_paren, "Expected `(` after `size`");
+          try_consume(TokenType::close_paren, "Expected `)` after `(` in size()");
+          auto term_size = m_allocator.alloc<NodeTermVectorSize>();
+          term_size->ident = ident;
+          auto term = m_allocator.alloc<NodeTerm>();
+          term->var = term_size;
+          return term;
+        } else {
+          std::cerr << "Unknown vector method in expression: " << method.value.value() << std::endl;
+          exit(EXIT_FAILURE);
+        }
+      } else {
+        auto expr_ident = m_allocator.alloc<NodeTermIdent>();
+        expr_ident->ident = ident;
+        auto term = m_allocator.alloc<NodeTerm>();
+        term->var = expr_ident;
+        return term;
+      }
     } else if (peek().has_value() && peek().value().type == TokenType::dollar) {
       consume();
       try_consume(TokenType::open_paren, "Expected `(` after `$`");
-      Token ident = try_consume(TokenType::ident, "Expected identifier inside `$()`");
-      try_consume(TokenType::close_paren, "Expected `)` after identifier");
-      auto expr_ident = m_allocator.alloc<NodeTermIdent>();
-      expr_ident->ident = ident;
+      auto expr = parse_expr();
+      if (!expr.has_value()) {
+        std::cerr << "Expected expression inside `$()`" << std::endl;
+        exit(EXIT_FAILURE);
+      }
+      try_consume(TokenType::close_paren, "Expected `)` after expression inside `$()`");
+      auto term_paren = m_allocator.alloc<NodeTermParen>();
+      term_paren->expr = expr.value();
       auto term = m_allocator.alloc<NodeTerm>();
-      term->var = expr_ident;
+      term->var = term_paren;
       return term;
     } else if (auto open_paren = try_consume(TokenType::open_paren)) {
       auto expr = parse_expr();
@@ -366,6 +455,54 @@ public:
       return stmt;
     } else if (peek().has_value() && peek().value().type == TokenType::let) {
       consume();
+      if (peek().has_value() && peek().value().type == TokenType::vector_kw) {
+        consume(); // consume 'vector'
+        try_consume(TokenType::less, "Expected `<` after `vector`");
+        VarType elem_type;
+        if (auto int_kw = try_consume(TokenType::int_kw)) {
+          elem_type = VarType::Int;
+        } else if (auto char_kw = try_consume(TokenType::char_kw)) {
+          elem_type = VarType::Char;
+        } else if (auto string_kw = try_consume(TokenType::string_kw)) {
+          elem_type = VarType::String;
+        } else {
+          std::cerr << "Expected type (int, char, string) inside `vector<...>`" << std::endl;
+          exit(EXIT_FAILURE);
+        }
+        try_consume(TokenType::greater, "Expected `>` after vector type");
+        Token ident = try_consume(TokenType::ident, "Expected identifier for vector");
+
+        VarType vec_type;
+        if (elem_type == VarType::Int) vec_type = VarType::VectorInt;
+        else if (elem_type == VarType::Char) vec_type = VarType::VectorChar;
+        else vec_type = VarType::VectorString;
+
+        auto stmt_vec = m_allocator.alloc<NodeStmtLetVector>();
+        stmt_vec->type = vec_type;
+        stmt_vec->ident = ident;
+
+        if (peek().has_value() && peek().value().type == TokenType::eq) {
+          consume(); // consume '='
+          try_consume(TokenType::open_curly, "Expected `{` for vector initializer list");
+          while (peek().has_value() && peek().value().type != TokenType::close_curly) {
+            auto elem_expr = parse_expr();
+            if (!elem_expr.has_value()) {
+              std::cerr << "Expected expression in vector initializer list" << std::endl;
+              exit(EXIT_FAILURE);
+            }
+            stmt_vec->init_elements.push_back(elem_expr.value());
+            if (peek().has_value() && peek().value().type == TokenType::comma) {
+              consume();
+            }
+          }
+          try_consume(TokenType::close_curly, "Expected `}` after vector initializer list");
+        }
+        try_consume(TokenType::semi, "Expected `;` after vector declaration");
+        auto stmt = m_allocator.alloc<NodeStmt>();
+        stmt->var = stmt_vec;
+        return stmt;
+      }
+
       VarType var_type = VarType::Int;
       if (peek().has_value() && peek().value().type == TokenType::string_kw) {
         consume();
@@ -395,6 +532,67 @@ public:
       try_consume(TokenType::semi, "Expected `;`");
       auto stmt = m_allocator.alloc<NodeStmt>();
       stmt->var = stmt_let;
+      return stmt;
+    } else if (peek().has_value() &&
+               peek().value().type == TokenType::ident &&
+               peek(1).has_value() &&
+               peek(1).value().type == TokenType::dot) {
+      Token ident = consume();
+      consume(); // consume '.'
+      Token method = try_consume(TokenType::ident, "Expected method after `.`");
+      if (method.value.value() == "push_back") {
+        try_consume(TokenType::open_paren, "Expected `(` after `push_back`");
+        auto expr = parse_expr();
+        if (!expr.has_value()) {
+          std::cerr << "Expected expression inside `push_back(...)`" << std::endl;
+          exit(EXIT_FAILURE);
+        }
+        try_consume(TokenType::close_paren, "Expected `)` after expression in `push_back`");
+        try_consume(TokenType::semi, "Expected `;` after `push_back(...)`");
+        auto stmt_push = m_allocator.alloc<NodeStmtVectorPush>();
+        stmt_push->ident = ident;
+        stmt_push->expr = expr.value();
+        auto stmt = m_allocator.alloc<NodeStmt>();
+        stmt->var = stmt_push;
+        return stmt;
+      } else if (method.value.value() == "pop_back") {
+        try_consume(TokenType::open_paren, "Expected `(` after `pop_back`");
+        try_consume(TokenType::close_paren, "Expected `)` after `(` in `pop_back`");
+        try_consume(TokenType::semi, "Expected `;` after `pop_back()`");
+        auto stmt_pop = m_allocator.alloc<NodeStmtVectorPop>();
+        stmt_pop->ident = ident;
+        auto stmt = m_allocator.alloc<NodeStmt>();
+        stmt->var = stmt_pop;
+        return stmt;
+      } else {
+        std::cerr << "Unknown method call on identifier: " << method.value.value() << std::endl;
+        exit(EXIT_FAILURE);
+      }
+    } else if (peek().has_value() &&
+               peek().value().type == TokenType::ident &&
+               peek(1).has_value() &&
+               peek(1).value().type == TokenType::open_bracket) {
+      Token ident = consume();
+      consume(); // consume '['
+      auto index_expr = parse_expr();
+      if (!index_expr.has_value()) {
+        std::cerr << "Expected index expression inside `[]`" << std::endl;
+        exit(EXIT_FAILURE);
+      }
+      try_consume(TokenType::close_bracket, "Expected `]` after index");
+      try_consume(TokenType::eq, "Expected `=` for index assignment");
+      auto val_expr = parse_expr();
+      if (!val_expr.has_value()) {
+        std::cerr << "Expected expression on right side of assignment" << std::endl;
+        exit(EXIT_FAILURE);
+      }
+      try_consume(TokenType::semi, "Expected `;` after index assignment");
+      auto stmt_assign = m_allocator.alloc<NodeStmtVectorAssign>();
+      stmt_assign->ident = ident;
+      stmt_assign->index = index_expr.value();
+      stmt_assign->value = val_expr.value();
+      auto stmt = m_allocator.alloc<NodeStmt>();
+      stmt->var = stmt_assign;
       return stmt;
     } else if (peek().has_value() &&
                peek().value().type == TokenType::ident &&

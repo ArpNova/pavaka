@@ -38,7 +38,11 @@ enum class TokenType {
   less,
   less_eq,
   greater,
-  greater_eq
+  greater_eq,
+  vector_kw,
+  open_bracket,
+  close_bracket,
+  dot
 };
 
 std::optional<int> bin_prec(TokenType type) {
@@ -106,6 +110,9 @@ public:
           buf.clear();
         } else if (buf == "int") {
           tokens.push_back({.type = TokenType::int_kw});
+          buf.clear();
+        } else if (buf == "vector") {
+          tokens.push_back({.type = TokenType::vector_kw});
           buf.clear();
         } else {
           tokens.push_back({.type = TokenType::ident, .value = buf});
@@ -272,7 +279,23 @@ public:
         tokens.push_back({.type = TokenType::star});
       } else if (peek().value() == '/') {
         consume();
+        if (peek().has_value() && peek().value() == '/') {
+          consume();
+          while (peek().has_value() && peek().value() != '\n') {
+            consume();
+          }
+          continue;
+        }
         tokens.push_back({.type = TokenType::fslash});
+      } else if (peek().value() == '[') {
+        consume();
+        tokens.push_back({.type = TokenType::open_bracket});
+      } else if (peek().value() == ']') {
+        consume();
+        tokens.push_back({.type = TokenType::close_bracket});
+      } else if (peek().value() == '.') {
+        consume();
+        tokens.push_back({.type = TokenType::dot});
       } else if (peek().value() == '{') {
         consume();
         tokens.push_back({.type = TokenType::open_curly});

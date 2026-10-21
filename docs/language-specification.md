@@ -75,6 +75,7 @@ Void adopts the **C language memory and type philosophy**:
 | `int` | 64 bits (8 bytes) | 64-bit two's complement integer stored on the hardware stack | `int64_t` / `long long` |
 | `char` | 8 bits (1 byte) | 8-bit ASCII value, stored in 64-bit aligned stack slots | `char` |
 | `string` | 64 bits (8 bytes) | 64-bit memory address (`char*`) pointing to static `.data` segment | `const char*` |
+| `vector<T>` | 192 bits (24 bytes) on stack | Triplet (`data_ptr`, `size`, `capacity`) with dynamically resized heap buffer | `std::vector<T>` |
 
 ### String Memory Layout (C-Style Null-Terminated Strings)
 String literals in Void have static storage duration and are placed in the read-only `.data` segment as null-terminated byte sequences:
@@ -180,7 +181,41 @@ let x = 42;                 // Inferred int (default)
 let int counter = 100;      // Explicit int
 let char symbol = 'Z';      // Character literal
 let string message = "Hi";  // String literal (char*)
+
+// Vector declarations (dynamic arrays, C++ std::vector style)
+let vector<int> nums = {10, 20, 30};           // Initializer list
+let vector<char> letters = {'a', 'b', 'c'};
+let vector<string> names = {"Alice", "Bob"};
+let vector<int> empty_vec;                     // Default empty vector
 ```
+
+### Vector Operations (C++ std::vector Style)
+
+Vectors are dynamic heap-backed arrays with automatic capacity doubling upon push, implemented via `sys_brk`:
+
+- **`.push_back(val)`**: Appends an element to the end of the vector, automatically doubling capacity when full.
+  ```pn
+  nums.push_back(40);
+  letters.push_back('d');
+  names.push_back("Charlie");
+  ```
+- **`.pop_back()`**: Removes the last element from the vector (decrements size).
+  ```pn
+  nums.pop_back();
+  ```
+- **`.size()`**: Returns the current element count as a 64-bit `int`.
+  ```pn
+  let int count = nums.size();
+  ```
+- **Index Access (`v[i]`)**: Reads or writes elements by index in $O(1)$ time.
+  ```pn
+  let first = nums[0];
+  nums[1] = 99;
+  ```
+- **Direct Printing**: Vector variables can be printed directly with automatic formatting `[...]`:
+  ```pn
+  print(nums); // Outputs: [10, 99, 30]
+  ```
 
 ### Variable Reassignment
 Existing variables can be reassigned using `=`:
@@ -363,11 +398,11 @@ cat out.asm
 
 | Feature | Current Status | Planned Implementation |
 | :--- | :--- | :--- |
-| **Data Types** | `int`, `char`, `string` | `bool`, `float`, fixed-size arrays |
+| **Data Types** | `int`, `char`, `string`, `vector<T>` (`int`, `char`, `string`) | `bool`, `float`, fixed-size arrays |
 | **Loops** | Not supported | `while (cond) { ... }`, `for (...)` loops |
 | **Functions** | Single entry point (`_start`) | User-defined functions with System V AMD64 ABI call frames (`call`/`ret`) |
-| **Heap Memory** | Static (`.data`) & Stack only | Dynamic heap allocations (`malloc`, `free`) |
+| **Heap Memory** | Dynamic (`sys_brk` bump allocator for vectors) & Static (`.data`) | Full free-list / deallocation (`free`) |
 | **Floating Point** | Not supported | SSE/AVX registers (`xmm0`-`xmm7`) |
-| **Comments** | Lexer does not parse `//` or `/* */` | Inline `//` and block `/* */` comments |
+| **Comments** | `//` line comments supported | Block `/* */` comments |
 | **String Concatenation** | Not supported (pointer comparison only) | Built-in string concatenation & helper functions |
 | **Target Architecture** | x86-64 Linux only | ARM64 (aarch64) and macOS/Mach-O support |

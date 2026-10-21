@@ -20,4 +20,22 @@ if (z == 1) {
 }
 
 print(a);
+
+// Vector demonstrations for int, char, and string
+let vector<int> nums = {10, 20, 30};
+nums.push_back(40);
+nums.push_back(50);
+nums[1] = 99;
+nums.pop_back();
+print("Int Vector: " $(nums) ", size: " $(nums.size()) ", element at 1: " $(nums[1]));
+
+let vector<char> letters = {'v', 'o', 'i', 'd'};
+letters.push_back('!');
+print("Char Vector: " $(letters) ", first char: " $(letters[0]));
+
+let vector<string> words = {"Welcome", "to", "Void"};
+words.push_back("Vectors!");
+words[2] = "Void Lang";
+print("String Vector: " $(words));
+
 exit(x);

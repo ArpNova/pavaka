@@ -31,6 +31,7 @@ exit(status);
   - `int`: 64-bit signed integers stored on the machine stack.
   - `char`: 8-bit ASCII characters with support for escape sequences (`\n`, `\t`, `\r`, `\0`, `\'`, `\\`).
   - `string`: Null-terminated string literals in `.data` with 64-bit pointers on the stack (`char*`), supporting pointer copying and reassignment.
+  - `vector<T>`: C++ `std::vector`-style dynamic arrays on the heap (`sys_brk`) for `int`, `char`, and `string`, supporting `.push_back()`, `.pop_back()`, `.size()`, element indexing (`v[i]`), and initializer lists (`{...}`).
 - **Control Flow**:
   - `if`, `else if`, and `else` statements with C-style truthiness (zero is falsy, non-zero is truthy).
   - Comparison operators (`==`, `!=`, `<`, `<=`, `>`, `>=`) and arithmetic (`+`, `-`, `*`, `/`) with Pratt operator precedence.

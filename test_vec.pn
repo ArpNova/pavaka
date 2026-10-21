@@ -1,0 +1,34 @@
+
+let vector<int> numbers = {10, 20, 30};
+print("Initial int vector: " $(numbers));
+print("Size before push: " $(numbers.size()));
+
+numbers.push_back(40);
+numbers.push_back(50);
+print("After push_backs: " $(numbers));
+print("Size after push: " $(numbers.size()));
+
+numbers[1] = 99;
+print("After modifying index 1: " $(numbers));
+print("Element at index 1 is: " $(numbers[1]));
+
+numbers.pop_back();
+print("After pop_back: " $(numbers));
+print("Size after pop: " $(numbers.size()));
+
+let vector<char> chars = {'h', 'e', 'l', 'l', 'o'};
+print("Char vector: " $(chars));
+chars.push_back('!');
+chars[0] = 'H';
+print("Modified char vector: " $(chars));
+print("First char: " $(chars[0]));
+
+let vector<string> words = {"hello", "void"};
+print("String vector: " $(words));
+words.push_back("compiler");
+print("After push string: " $(words));
+words[1] = "world";
+print("Modified string vector: " $(words));
+print("Word at 1: " $(words[1]));
+
+exit(0);
