@@ -510,7 +510,7 @@ public:
 
         // Allocate buffer on heap
         gen->m_output << "    mov rdi, " << (initial_cap * elem_size) << "\n";
-        gen->m_output << "    call __void_alloc\n";
+        gen->m_output << "    call __pavaka_alloc\n";
 
         if (init_count > 0) {
           gen->m_output << "    mov r12, rax\n"; // r12 = buffer
@@ -593,7 +593,7 @@ public:
         } else {
           gen->m_output << "    lea rdi, [rcx * 8]\n";
         }
-        gen->m_output << "    call __void_alloc\n";
+        gen->m_output << "    call __pavaka_alloc\n";
         gen->m_output << "    mov r12, rax\n"; // new buffer
         gen->m_output << "    mov rsi, " << data_addr << "\n";
         gen->m_output << "    mov rdi, r12\n";
@@ -969,7 +969,7 @@ public:
     m_output << "    syscall\n";
 
     // Allocator routine
-    m_output << "\n__void_alloc:\n";
+    m_output << "\n__pavaka_alloc:\n";
     m_output << "    push rbx\n";
     m_output << "    mov rbx, [rel __heap_current]\n";
     m_output << "    lea rax, [rbx + rdi]\n";

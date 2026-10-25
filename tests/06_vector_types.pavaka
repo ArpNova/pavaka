@@ -1,4 +1,4 @@
-
+// Test 6: Vector types (int, char, string) with push_back, indexing, and pop_back
 let vector<int> numbers = {10, 20, 30};
 print("Initial int vector: " $(numbers));
 print("Size before push: " $(numbers.size()));
@@ -23,7 +23,7 @@ chars[0] = 'H';
 print("Modified char vector: " $(chars));
 print("First char: " $(chars[0]));
 
-let vector<string> words = {"hello", "void"};
+let vector<string> words = {"hello", "pavaka"};
 print("String vector: " $(words));
 words.push_back("compiler");
 print("After push string: " $(words));

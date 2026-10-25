@@ -11,23 +11,64 @@
 
 using namespace std;
 
-
-
 int main(int argc, char *argv[])
 {
-    if (argc != 2)
+    string input_path;
+    string output_path = "out";
+
+    for (int i = 1; i < argc; ++i)
     {
-        cerr << "incorrect usage... correct usage is -" << endl
-             << "void <input.pn>" << endl;
+        string arg = argv[i];
+        if (arg == "-o")
+        {
+            if (i + 1 < argc)
+            {
+                output_path = argv[++i];
+            }
+            else
+            {
+                cerr << "Error: -o option requires an argument" << endl;
+                return EXIT_FAILURE;
+            }
+        }
+        else if (arg == "-h" || arg == "--help")
+        {
+            cout << "Usage: pavakac <input.pavaka> [-o <output>]" << endl;
+            return EXIT_SUCCESS;
+        }
+        else if (!arg.empty() && arg[0] == '-')
+        {
+            cerr << "Unknown option: " << arg << endl;
+            return EXIT_FAILURE;
+        }
+        else
+        {
+            if (input_path.empty())
+            {
+                input_path = arg;
+            }
+            else
+            {
+                cerr << "Error: Multiple input files provided: " << input_path << ", " << arg << endl;
+                return EXIT_FAILURE;
+            }
+        }
+    }
+
+    if (input_path.empty())
+    {
+        cerr << "Incorrect usage... correct usage is -" << endl
+             << "pavakac <input.pavaka> [-o <output>]" << endl;
         return EXIT_FAILURE;
     }
+
     string contents;
     {
         stringstream contents_stream;
-        fstream input(argv[1], ios::in);
+        fstream input(input_path, ios::in);
         if (!input)
         {
-            cerr << "Could not open input file: " << argv[1] << endl;
+            cerr << "Could not open input file: " << input_path << endl;
             return EXIT_FAILURE;
         }
         contents_stream << input.rdbuf();
@@ -40,34 +81,41 @@ int main(int argc, char *argv[])
     Parser parser(std::move(tokens));
     std::optional<NodeProg> prog = parser.parse_prog();
 
-    if(!prog.has_value()){
-        std::cerr << "Invalid program" << std::endl;
-        exit(EXIT_FAILURE);
+    if (!prog.has_value())
+    {
+        cerr << "Invalid program" << endl;
+        return EXIT_FAILURE;
     }
 
     Generator generator(prog.value());
 
+    string asm_file = output_path + ".asm";
+    string obj_file = output_path + ".o";
+
     {
-        fstream file("out.asm", ios::out);
+        fstream file(asm_file, ios::out);
         if (!file)
         {
-            cerr << "Could not create out.asm" << endl;
+            cerr << "Could not create " << asm_file << endl;
             return EXIT_FAILURE;
         }
         file << generator.gen_prog();
         if (!file)
         {
-            cerr << "Could not write out.asm" << endl;
+            cerr << "Could not write " << asm_file << endl;
             return EXIT_FAILURE;
         }
     }
 
-    if (system("nasm -felf64 out.asm") != 0)
+    string nasm_cmd = "nasm -felf64 \"" + asm_file + "\" -o \"" + obj_file + "\"";
+    if (system(nasm_cmd.c_str()) != 0)
     {
         cerr << "Assembler failed" << endl;
         return EXIT_FAILURE;
     }
-    if (system("ld -o out out.o") != 0)
+
+    string ld_cmd = "ld -o \"" + output_path + "\" \"" + obj_file + "\"";
+    if (system(ld_cmd.c_str()) != 0)
     {
         cerr << "Linker failed" << endl;
         return EXIT_FAILURE;

@@ -1,11 +1,11 @@
-# Void Compiler Flow
+# Pavaka Compiler Flow
 
-Void is a small compiler pipeline. It accepts one `.pn` source file, turns it
+Pavaka is a small compiler pipeline. It accepts one `.pavaka` source file, turns it
 into x86-64 assembly, and uses NASM and `ld` to produce a native executable.
 
 ```mermaid
 flowchart TD
-    A[Source file: program.pn] --> B[main.cpp<br/>Read entire file]
+    A[Source file: program.pavaka] --> B[main.cpp<br/>Read entire file]
     B --> C[Tokenizer<br/>tokenization.hpp]
     C --> D{Valid characters<br/>and tokens?}
     D -- No --> E[Report tokenizer error<br/>and stop]
@@ -19,11 +19,11 @@ flowchart TD
     L --> M[Generator<br/>generation.hpp]
     M --> N{Identifier checks}
     N -- Invalid --> O[Report undeclared or<br/>duplicate identifier<br/>and stop]
-    N -- Valid --> P[Generate out.asm<br/>x86-64 NASM]
-    P --> Q[nasm -felf64 out.asm]
-    Q --> R[out.o]
-    R --> S[ld -o out out.o]
-    S --> T[Native executable: ./out]
+    N -- Valid --> P[Generate &lt;output&gt;.asm<br/>x86-64 NASM]
+    P --> Q[nasm -felf64 &lt;output&gt;.asm]
+    Q --> R[&lt;output&gt;.o]
+    R --> S[ld -o &lt;output&gt; &lt;output&gt;.o]
+    S --> T[Native executable: ./&lt;output&gt;]
 
     U[let name = expression] -.-> V[Variable map + stack slot]
     M -.-> V
@@ -31,7 +31,7 @@ flowchart TD
 
 ## What each stage does
 
-1. **Input (`src/main.cpp`)**: Requires exactly one input path, reads the file,
+1. **Input (`src/main.cpp`)**: Requires an input path (e.g. `pavakac hello.pavaka -o pavaka`), reads the file,
    and passes its contents to the tokenizer.
 2. **Tokenization (`src/tokenization.hpp`)**: Converts keywords (`let`, `string`,
    `char`, `int`, `if`, `else`, `print`, `exit`), identifiers, literals (integer,
@@ -50,14 +50,14 @@ flowchart TD
    - Handles lexical scopes `{ ... }` with stack cleanup (`add rsp, N*8`).
    - Translates `if`, `else if`, and `else` blocks into conditional jumps (`cmp`, `je`, `jmp`).
    - Emits formatted printing routines for `int`, `char`, and `string`.
-6. **Assembly and Linking (`src/main.cpp`)**: Writes `out.asm`, assembles it into
-   `out.o` with NASM, and links it with `ld` into the native `out` executable.
+6. **Assembly and Linking (`src/main.cpp`)**: Writes `<output>.asm`, assembles it into
+   `<output>.o` with NASM, and links it with `ld` into the native `<output>` executable.
 
 ## Example Path
 
-For `test.pn`:
+For `test.pavaka`:
 
-```pn
+```pavaka
 let x = (280) / 2;
 let string a = "I no pata...";
 

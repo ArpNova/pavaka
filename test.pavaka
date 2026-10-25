@@ -29,13 +29,13 @@ nums[1] = 99;
 nums.pop_back();
 print("Int Vector: " $(nums) ", size: " $(nums.size()) ", element at 1: " $(nums[1]));
 
-let vector<char> letters = {'v', 'o', 'i', 'd'};
+let vector<char> letters = {'p', 'a', 'v', 'a', 'k', 'a'};
 letters.push_back('!');
 print("Char Vector: " $(letters) ", first char: " $(letters[0]));
 
-let vector<string> words = {"Welcome", "to", "Void"};
+let vector<string> words = {"Welcome", "to", "Pavaka"};
 words.push_back("Vectors!");
-words[2] = "Void Lang";
+words[2] = "Pavaka Lang";
 print("String Vector: " $(words));
 
 exit(x);

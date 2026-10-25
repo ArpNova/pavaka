@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Configure void",
+            "label": "Configure pavaka",
             "type": "process",
             "command": "/usr/bin/cmake",
             "args": [
@@ -20,7 +20,7 @@
             ]
         },
         {
-            "label": "Compile void",
+            "label": "Compile pavakac",
             "type": "process",
             "command": "/usr/bin/cmake",
             "args": [
@@ -33,24 +33,26 @@
             "problemMatcher": [
                 "$gcc"
             ],
-            "dependsOn": "Configure void"
+            "dependsOn": "Configure pavaka"
         },
         {
-            "label": "Run void",
+            "label": "Run pavakac",
             "type": "process",
-            "command": "${workspaceFolder}/build/void",
+            "command": "${workspaceFolder}/build/pavakac",
             "args": [
-                "test.pn"
+                "test.pavaka",
+                "-o",
+                "pavaka"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
             },
             "problemMatcher": [],
-            "dependsOn": "Compile void"
+            "dependsOn": "Compile pavakac"
         },
         {
-            "label": "Build and Run void",
-            "dependsOn": "Run void",
+            "label": "Build and Run pavaka",
+            "dependsOn": "Run pavakac",
             "dependsOrder": "sequence",
             "group": {
                 "kind": "build",

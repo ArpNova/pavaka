@@ -2,19 +2,21 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug void",
+            "name": "Debug pavakac",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/void",
+            "program": "${workspaceFolder}/build/pavakac",
             "args": [
-                "test.pn"
+                "test.pavaka",
+                "-o",
+                "pavaka"
             ],
             "cwd": "${workspaceFolder}",
             "stopAtEntry": false,
             "externalConsole": false,
             "MIMode": "gdb",
             "miDebuggerPath": "/usr/bin/gdb",
-            "preLaunchTask": "Compile void"
+            "preLaunchTask": "Compile pavakac"
         }
     ]
 }

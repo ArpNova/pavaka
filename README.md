@@ -1,17 +1,17 @@
-# Void Compiler
+# Pavaka Compiler
 
-A compiled, statically-typed systems programming language targeting x86-64 Linux. Void compiles source programs (`.pn`) directly to native x86-64 NASM assembly and links them into standalone ELF-64 executables with no standard library or libc dependencies.
+A compiled, statically-typed systems programming language targeting x86-64 Linux. Pavaka compiles source programs (`.pavaka`) directly to native x86-64 NASM assembly and links them into standalone ELF-64 executables with no standard library or libc dependencies.
 
 ---
 
-## Quick Example (`test.pn`)
+## Quick Example (`test.pavaka`)
 
-```pn
+```pavaka
 let string message = "Hello, World!";
 let int version = 1;
 
 print($(message));
-print("Void Language v" $(version) " initialized.");
+print("Pavaka Language v" $(version) " initialized.");
 
 let status = 0;
 if (status == 0) {
@@ -63,15 +63,22 @@ exit(status);
 - `nasm`
 - `ld` (GNU binutils)
 
-### Building the Compiler
+### Building the Compiler (`pavakac`)
 ```bash
 cmake -B build
 cmake --build build
 ```
+This produces the compiler binary `pavakac` (available in `./build/pavakac` and symlinked to `./pavakac`).
 
-### Running a Program
+### Compiling and Executing a Program
 ```bash
-./build/void test.pn
-./out
+./pavakac hello.pavaka -o pavaka
+./pavaka
 echo "Exit code: $?"
+```
+
+You can also compile `test.pavaka`:
+```bash
+./pavakac test.pavaka -o pavaka
+./pavaka
 ```

@@ -1,6 +1,6 @@
-# Void Programming Language Specification & Architecture Guide
+# Pavaka Programming Language Specification & Architecture Guide
 
-Void is a statically-typed, compiled systems programming language targeting x86-64 Linux. It compiles source files (with the `.pn` extension) directly into native x86-64 NASM assembly, producing standalone, statically-linked ELF-64 executables without external runtime libraries or libc dependencies.
+Pavaka is a statically-typed, compiled systems programming language targeting x86-64 Linux. It compiles source files (with the `.pavaka` extension) directly into native x86-64 NASM assembly, producing standalone, statically-linked ELF-64 executables without external runtime libraries or libc dependencies.
 
 ---
 
@@ -20,13 +20,13 @@ Void is a statically-typed, compiled systems programming language targeting x86-
 
 ## 1. Architecture & Compilation Pipeline
 
-The Void compiler is built from scratch in modern C++20 with zero third-party library dependencies.
+The Pavaka compiler is built from scratch in modern C++20 with zero third-party library dependencies.
 
 ```
 +---------------------------------------------------------------------------------------+
-|                                    Void Pipeline                                      |
+|                                   Pavaka Pipeline                                     |
 +---------------------------------------------------------------------------------------+
-|  Source (.pn)                                                                         |
+|  Source (.pavaka)                                                                     |
 |       |                                                                               |
 |       v                                                                               |
 |  Tokenizer (tokenization.hpp) --------> Converts raw text into Token stream           |
@@ -389,29 +389,29 @@ sudo apt update
 sudo apt install build-essential cmake nasm
 ```
 
-### Compiling the Void Compiler
+### Compiling the Pavaka Compiler
 ```bash
 cmake -B build
 cmake --build build
 ```
-This generates the compiler binary at `./build/void`.
+This generates the compiler binary at `./build/pavakac` (and symlinked at `./pavakac`).
 
 ### Compiling and Running a Program
 ```bash
 # Compile source to executable
-./build/void test.pn
+./pavakac hello.pavaka -o pavaka
 
 # Run the produced executable
-./out
+./pavaka
 
 # Check exit code
 echo "Exit code: $?"
 ```
 
 ### Inspecting Generated Assembly
-The compiler saves intermediate assembly to `out.asm`:
+The compiler saves intermediate assembly to `<output>.asm` (e.g. `pavaka.asm`):
 ```bash
-cat out.asm
+cat pavaka.asm
 ```
 
 ---
