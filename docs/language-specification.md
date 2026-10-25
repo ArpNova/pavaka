@@ -399,19 +399,19 @@ This generates the compiler binary at `./build/pavakac` (and symlinked at `./pav
 ### Compiling and Running a Program
 ```bash
 # Compile source to executable
-./pavakac hello.pavaka -o pavaka
+./pavakac test.pavaka -o test
 
 # Run the produced executable
-./pavaka
+./test
 
 # Check exit code
 echo "Exit code: $?"
 ```
 
 ### Inspecting Generated Assembly
-The compiler saves intermediate assembly to `<output>.asm` (e.g. `pavaka.asm`):
+The compiler saves intermediate assembly to `<output>.asm` (e.g. `test.asm`):
 ```bash
-cat pavaka.asm
+cat test.asm
 ```
 
 ---

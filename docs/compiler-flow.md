@@ -31,7 +31,7 @@ flowchart TD
 
 ## What each stage does
 
-1. **Input (`src/main.cpp`)**: Requires an input path (e.g. `pavakac hello.pavaka -o pavaka`), reads the file,
+1. **Input (`src/main.cpp`)**: Requires an input path (e.g. `pavakac test.pavaka -o test`), reads the file,
    and passes its contents to the tokenizer.
 2. **Tokenization (`src/tokenization.hpp`)**: Converts keywords (`let`, `string`,
    `char`, `int`, `if`, `else`, `print`, `exit`), identifiers, literals (integer,

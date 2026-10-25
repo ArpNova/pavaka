@@ -72,13 +72,13 @@ This produces the compiler binary `pavakac` (available in `./build/pavakac` and 
 
 ### Compiling and Executing a Program
 ```bash
-./pavakac hello.pavaka -o pavaka
-./pavaka
+./pavakac test.pavaka -o test
+./test
 echo "Exit code: $?"
 ```
 
-You can also compile `test.pavaka`:
+You can also compile `test.pavaka `:
 ```bash
-./pavakac test.pavaka -o pavaka
-./pavaka
+./pavakac test.pavaka -o test
+./test
 ```
